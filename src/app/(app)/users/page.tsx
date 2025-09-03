@@ -72,6 +72,7 @@ import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { User } from "@/services/users";
 import { useAuth } from "@/contexts/AuthContext";
+import { DEFAULT_DEPARTMENTS } from "@/lib/departments";
 
 export default function UsersPage() {
   const router = useRouter();
@@ -294,7 +295,10 @@ export default function UsersPage() {
   };
 
   const uniqueDepartments = Array.from(
-    new Set(users.map((user) => user.department))
+    new Set([
+      ...users.map((user) => user.department).filter(Boolean),
+      ...DEFAULT_DEPARTMENTS,
+    ])
   ).filter(Boolean);
 
   const SidebarContent = () => (

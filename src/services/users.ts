@@ -1,4 +1,5 @@
-import { db } from "@/firebase/firebase";
+import { auth, db, getSecondaryAuth } from "@/firebase/firebase";
+import { createUserWithEmailAndPassword, signOut } from "firebase/auth";
 import {
   collection,
   doc,
@@ -18,6 +19,7 @@ import {
 
 export interface User {
   id?: string;
+  uid?: string;
   employeeId: string;
   fullName: string;
   email: string;
@@ -209,6 +211,29 @@ export const addUser = async (
     return userRef.id;
   } catch (error) {
     console.error("Error adding user:", error);
+    throw error;
+  }
+};
+
+// Tạo tài khoản đăng nhập Firebase Auth cho nhân viên
+export const createAuthUser = async (
+  email: string,
+  password: string
+): Promise<string> => {
+  try {
+    // Sử dụng secondary auth để không làm mất session hiện tại
+    const secondaryAuth = getSecondaryAuth();
+    const cred = await createUserWithEmailAndPassword(
+      secondaryAuth,
+      email,
+      password
+    );
+    const uid = cred.user.uid;
+    // Sign out secondary auth để tránh giữ session phụ
+    await signOut(secondaryAuth);
+    return uid;
+  } catch (error) {
+    console.error("Error creating auth user:", error);
     throw error;
   }
 };

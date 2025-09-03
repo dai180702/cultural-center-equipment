@@ -1,4 +1,4 @@
-import { initializeApp } from "firebase/app";
+import { initializeApp, getApp, getApps, deleteApp } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
@@ -21,6 +21,15 @@ const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
+
+// Trả về Auth instance thứ hai để tạo người dùng mà không ảnh hưởng session hiện tại
+export const getSecondaryAuth = () => {
+  const secondaryName = "secondary";
+  const secondaryApp = getApps().find((a) => a.name === secondaryName)
+    ? getApp(secondaryName)
+    : initializeApp(firebaseConfig, secondaryName);
+  return getAuth(secondaryApp);
+};
 
 // Connect to emulators in development
 if (process.env.NODE_ENV === "development") {

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { FirebaseError } from "firebase/app";
 import {
   getUsers,
   getUsersPaginated,
   getUserById,
   addUser,
+  createAuthUser,
   updateUser,
   deleteUser,
   getUsersByFilters,
@@ -92,15 +94,42 @@ export const useUsers = () => {
 
   // Thêm nhân viên mới
   const createUser = useCallback(
-    async (userData: Omit<User, "id" | "createdAt" | "updatedAt">) => {
+    async (
+      userData: Omit<User, "id" | "createdAt" | "updatedAt">,
+      password?: string
+    ) => {
       try {
         setLoading(true);
         setError(null);
-        const userId = await addUser(userData);
+        let userPayload = { ...userData } as Omit<
+          User,
+          "id" | "createdAt" | "updatedAt"
+        >;
+
+        if (password) {
+          // Tạo tài khoản đăng nhập và lấy uid
+          const uid = await createAuthUser(userData.email, password);
+          userPayload = { ...userPayload, uid };
+        }
+
+        const userId = await addUser(userPayload);
         await fetchUsers(); // Refresh danh sách
         return userId;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Lỗi khi thêm nhân viên");
+        let message = "Lỗi khi thêm nhân viên";
+        const errorObj = err as FirebaseError & { code?: string };
+        if (errorObj && errorObj.code) {
+          if (errorObj.code === "auth/email-already-in-use") {
+            message = "Email đã được đăng ký";
+          } else if (errorObj.code === "auth/weak-password") {
+            message = "Mật khẩu quá yếu (tối thiểu 6 ký tự)";
+          } else {
+            message = errorObj.message || message;
+          }
+        } else if (err instanceof Error) {
+          message = err.message;
+        }
+        setError(message);
         throw err;
       } finally {
         setLoading(false);

@@ -86,6 +86,8 @@ export default function NewUserPage() {
     employeeId: "",
     fullName: "",
     email: "",
+    password: "",
+    confirmPassword: "",
     phone: "",
     department: "",
     position: "",
@@ -100,6 +102,7 @@ export default function NewUserPage() {
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeStep, setActiveStep] = useState(0);
+  const [customDepartment, setCustomDepartment] = useState("");
 
   // Cập nhật sidebar khi thay đổi kích thước màn hình
   useEffect(() => {
@@ -163,11 +166,20 @@ export default function NewUserPage() {
       if (!formData.email.trim()) next.email = "Bắt buộc";
       else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
         next.email = "Email không hợp lệ";
+      if (!formData.password.trim()) next.password = "Bắt buộc";
+      else if (formData.password.length < 6)
+        next.password = "Mật khẩu tối thiểu 6 ký tự";
+      if (!formData.confirmPassword.trim()) next.confirmPassword = "Bắt buộc";
+      else if (formData.confirmPassword !== formData.password)
+        next.confirmPassword = "Mật khẩu không khớp";
       if (!formData.phone.trim()) next.phone = "Bắt buộc";
       else if (!/^[0-9]{10,15}$/.test(formData.phone.trim()))
         next.phone = "Số điện thoại phải có 10-15 chữ số";
     } else if (step === 1) {
       if (!formData.department.trim()) next.department = "Bắt buộc";
+      if (formData.department === "Khác" && !customDepartment.trim()) {
+        next.department = "Vui lòng nhập tên phòng ban";
+      }
       if (!formData.position.trim()) next.position = "Bắt buộc";
       if (!formData.startDate) next.startDate = "Bắt buộc";
     }
@@ -183,8 +195,13 @@ export default function NewUserPage() {
   const handleSubmit = async () => {
     if (!validateStep(activeStep)) return;
     const cleanSkills = formData.skills.filter((s) => s.trim() !== "");
+    const { password, confirmPassword, ...rest } = formData as any;
     const payload = {
-      ...formData,
+      ...rest,
+      department:
+        rest.department === "Khác" && customDepartment.trim()
+          ? customDepartment.trim()
+          : rest.department,
       skills: cleanSkills,
       emergencyContact: formData.emergencyContact.name.trim()
         ? formData.emergencyContact
@@ -193,7 +210,7 @@ export default function NewUserPage() {
       notes: formData.notes.trim() || undefined,
     } as any;
     const cleanedPayload = JSON.parse(JSON.stringify(payload));
-    await createUser(cleanedPayload);
+    await createUser(cleanedPayload, formData.password);
     router.push("/users");
   };
 
@@ -1081,6 +1098,28 @@ export default function NewUserPage() {
                     />
                     <TextField
                       fullWidth
+                      label="Mật khẩu *"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        handleInputChange("password", e.target.value)
+                      }
+                      error={!!errors.password}
+                      helperText={errors.password}
+                    />
+                    <TextField
+                      fullWidth
+                      label="Xác nhận mật khẩu *"
+                      type="password"
+                      value={formData.confirmPassword}
+                      onChange={(e) =>
+                        handleInputChange("confirmPassword", e.target.value)
+                      }
+                      error={!!errors.confirmPassword}
+                      helperText={errors.confirmPassword}
+                    />
+                    <TextField
+                      fullWidth
                       label="Số điện thoại *"
                       value={formData.phone}
                       onChange={(e) => {
@@ -1094,7 +1133,7 @@ export default function NewUserPage() {
                         maxLength: 15,
                       }}
                       error={!!errors.phone}
-                      helperText={errors.phone }
+                      helperText={errors.phone}
                     />
                     <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
                       <TextField
@@ -1119,45 +1158,44 @@ export default function NewUserPage() {
                       gap: 3,
                     }}
                   >
-                    {(departments && departments.length > 0
-                      ? departments
-                      : DEFAULT_DEPARTMENTS
-                    ).length > 0 ? (
-                      <FormControl fullWidth error={!!errors.department}>
-                        <InputLabel>Phòng ban *</InputLabel>
-                        <Select
-                          value={formData.department}
-                          label="Phòng ban *"
-                          onChange={(e) =>
-                            handleInputChange("department", e.target.value)
-                          }
-                        >
-                          {(departments && departments.length > 0
-                            ? departments
-                            : DEFAULT_DEPARTMENTS
-                          ).map((d) => (
-                            <MenuItem key={d} value={d}>
-                              {d}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                        {errors.department && (
-                          <FormHelperText>{errors.department}</FormHelperText>
-                        )}
-                      </FormControl>
-                    ) : (
-                      <TextField
-                        fullWidth
-                        label="Phòng ban *"
+                    <FormControl fullWidth error={!!errors.department}>
+                      <InputLabel>Phòng ban *</InputLabel>
+                      <Select
                         value={formData.department}
+                        label="Phòng ban *"
                         onChange={(e) =>
                           handleInputChange("department", e.target.value)
                         }
+                      >
+                        {Array.from(
+                          new Set(
+                            [
+                              ...(departments && departments.length > 0
+                                ? departments
+                                : []),
+                              ...DEFAULT_DEPARTMENTS,
+                              "Khác",
+                            ].filter(Boolean)
+                          )
+                        ).map((d) => (
+                          <MenuItem key={d} value={d}>
+                            {d}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                      {errors.department && (
+                        <FormHelperText>{errors.department}</FormHelperText>
+                      )}
+                    </FormControl>
+
+                    {formData.department === "Khác" && (
+                      <TextField
+                        fullWidth
+                        label="Tên phòng ban khác *"
+                        value={customDepartment}
+                        onChange={(e) => setCustomDepartment(e.target.value)}
                         error={!!errors.department}
-                        helperText={
-                          errors.department ||
-                          "Chưa có dữ liệu phòng ban, nhập tên phòng ban mới"
-                        }
+                        helperText={errors.department}
                       />
                     )}
                     <TextField
