@@ -23,6 +23,10 @@ import {
   useTheme,
   Divider,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {
@@ -103,6 +107,10 @@ export default function NewUserPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeStep, setActiveStep] = useState(0);
   const [customDepartment, setCustomDepartment] = useState("");
+  // Action password state
+  const [actionPwdOpen, setActionPwdOpen] = useState(false);
+  const [actionPwd, setActionPwd] = useState("");
+  const [actionPwdError, setActionPwdError] = useState("");
 
   // Cập nhật sidebar khi thay đổi kích thước màn hình
   useEffect(() => {
@@ -192,7 +200,7 @@ export default function NewUserPage() {
   };
   const handleBack = () => setActiveStep((s) => s - 1);
 
-  const handleSubmit = async () => {
+  const performCreate = async () => {
     if (!validateStep(activeStep)) return;
     const cleanSkills = formData.skills.filter((s) => s.trim() !== "");
     const { password, confirmPassword, ...rest } = formData as any;
@@ -212,6 +220,34 @@ export default function NewUserPage() {
     const cleanedPayload = JSON.parse(JSON.stringify(payload));
     await createUser(cleanedPayload, formData.password);
     router.push("/users");
+  };
+
+  const handleSubmit = () => {
+    setActionPwd("");
+    setActionPwdError("");
+    setActionPwdOpen(true);
+  };
+
+  const handleConfirmActionPwd = async () => {
+    const { getAppSettings } = await import("@/services/settings");
+    const settings = await getAppSettings();
+    const expected = settings?.actionPassword || "";
+    if (!actionPwd.trim()) {
+      setActionPwdError("Vui lòng nhập mật khẩu hành động");
+      return;
+    }
+    if (!expected) {
+      setActionPwdError(
+        "Chưa thiết lập mật khẩu hành động. Vui lòng vào Quản lý mật khẩu để đặt trước."
+      );
+      return;
+    }
+    if (actionPwd !== expected) {
+      setActionPwdError("Mật khẩu không đúng");
+      return;
+    }
+    setActionPwdOpen(false);
+    await performCreate();
   };
 
   const SidebarContent = () => (
@@ -1396,6 +1432,34 @@ export default function NewUserPage() {
           </Container>
         </Box>
       </Box>
+      {/* Password confirmation dialog */}
+      <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
+        <DialogTitle>Xác nhận mật khẩu</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Mật khẩu hành động"
+            type="password"
+            fullWidth
+            value={actionPwd}
+            onChange={(e) => {
+              setActionPwd(e.target.value);
+              if (actionPwdError) setActionPwdError("");
+            }}
+            error={!!actionPwdError}
+            helperText={
+              actionPwdError || "Nhập mật khẩu để xác nhận thao tác tạo"
+            }
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
+          <Button variant="contained" onClick={handleConfirmActionPwd}>
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

@@ -31,6 +31,12 @@ import {
   useTheme,
   Divider,
 } from "@mui/material";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {
   Add as AddIcon,
@@ -95,6 +101,7 @@ export default function UsersPage() {
   const [usersMenuOpen, setUsersMenuOpen] = useState(true);
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -104,10 +111,32 @@ export default function UsersPage() {
   const [rowsPerPage] = useState(10);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [userToDelete, setUserToDelete] = useState<User | null>(null);
+  const [actionPwdOpen, setActionPwdOpen] = useState(false);
+  const [actionPwd, setActionPwd] = useState("");
+  const [actionPwdError, setActionPwdError] = useState("");
+  const [pendingAction, setPendingAction] = useState<{
+    type: "new" | "edit" | "delete";
+    userId?: string;
+  } | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  useEffect(() => {
+    // load current user's role from users collection
+    const loadRole = async () => {
+      try {
+        if (!currentUser?.email) return;
+        const { getUserByEmail } = await import("@/services/users");
+        const u = await getUserByEmail(currentUser.email);
+        setCurrentUserRole(u?.role || null);
+      } catch (e) {
+        // silently ignore
+      }
+    };
+    loadRole();
+  }, [currentUser?.email]);
 
   // Cập nhật sidebar khi thay đổi kích thước màn hình
   useEffect(() => {
@@ -225,16 +254,62 @@ export default function UsersPage() {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDeleteUser = async () => {
-    if (userToDelete) {
-      try {
+  const confirmDeleteUser = () => {
+    // Open password dialog before deleting
+    setPendingAction({ type: "delete" });
+    setActionPwd("");
+    setActionPwdError("");
+    setActionPwdOpen(true);
+  };
+
+  const requestNavigateNew = () => {
+    setPendingAction({ type: "new" });
+    setActionPwd("");
+    setActionPwdError("");
+    setActionPwdOpen(true);
+  };
+
+  const requestEdit = (userId: string) => {
+    setPendingAction({ type: "edit", userId });
+    setActionPwd("");
+    setActionPwdError("");
+    setActionPwdOpen(true);
+  };
+
+  const handleConfirmActionPwd = async () => {
+    const { getAppSettings } = await import("@/services/settings");
+    const settings = await getAppSettings();
+    const expected = settings?.actionPassword || "";
+    if (!actionPwd.trim()) {
+      setActionPwdError("Vui lòng nhập mật khẩu hành động");
+      return;
+    }
+    if (!expected) {
+      setActionPwdError(
+        "Chưa thiết lập mật khẩu hành động. Vui lòng vào Quản lý mật khẩu để đặt trước."
+      );
+      return;
+    }
+    if (actionPwd !== expected) {
+      setActionPwdError("Mật khẩu không đúng");
+      return;
+    }
+    setActionPwdOpen(false);
+    try {
+      if (pendingAction?.type === "new") {
+        router.push("/users/new");
+      } else if (pendingAction?.type === "edit" && pendingAction.userId) {
+        router.push(`/users/${pendingAction.userId}/edit`);
+      } else if (pendingAction?.type === "delete" && userToDelete) {
         await removeUser(userToDelete.id!);
         setDeleteDialogOpen(false);
         setUserToDelete(null);
         fetchUsers();
-      } catch (error) {
-        console.error("Lỗi khi xóa nhân viên:", error);
       }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setPendingAction(null);
     }
   };
 
@@ -808,7 +883,7 @@ export default function UsersPage() {
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/users/new")}
+                onClick={requestNavigateNew}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -820,22 +895,24 @@ export default function UsersPage() {
               >
                 Thêm mới
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<SettingsIcon />}
-                onClick={() => router.push("/users/roles")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Phân quyền
-              </Button>
+              {currentUserRole === "manager" && (
+                <Button
+                  fullWidth
+                  size="small"
+                  startIcon={<SettingsIcon />}
+                  onClick={() => router.push("/users/password")}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "white",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                    py: 0.5,
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  }}
+                >
+                  Quản lý mật khẩu
+                </Button>
+              )}
               <Button
                 fullWidth
                 size="small"
@@ -1164,7 +1241,7 @@ export default function UsersPage() {
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/users/new")}
+                onClick={requestNavigateNew}
                 sx={{ px: 3, py: 1.5 }}
               >
                 Thêm nhân viên
@@ -1507,9 +1584,7 @@ export default function UsersPage() {
                                   <IconButton
                                     size="small"
                                     color="warning"
-                                    onClick={() =>
-                                      router.push(`/users/${user.id}/edit`)
-                                    }
+                                    onClick={() => requestEdit(user.id!)}
                                   >
                                     <EditIcon />
                                   </IconButton>
@@ -1608,6 +1683,32 @@ export default function UsersPage() {
           </Container>
         </Box>
       </Box>
+      {/* Action password dialog */}
+      <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
+        <DialogTitle>Xác nhận mật khẩu</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            margin="dense"
+            label="Mật khẩu hành động"
+            type="password"
+            fullWidth
+            value={actionPwd}
+            onChange={(e) => {
+              setActionPwd(e.target.value);
+              if (actionPwdError) setActionPwdError("");
+            }}
+            error={!!actionPwdError}
+            helperText={actionPwdError || "Nhập mật khẩu để xác nhận thao tác"}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
+          <Button variant="contained" onClick={handleConfirmActionPwd}>
+            Xác nhận
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

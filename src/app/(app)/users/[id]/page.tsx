@@ -26,6 +26,7 @@ import {
   DialogActions,
   Drawer,
   useTheme,
+  TextField,
 } from "@mui/material";
 import {
   Edit as EditIcon,
@@ -84,6 +85,12 @@ export default function UserDetailPage() {
   const { fetchUserById, removeUser, loading, error, clearError } = useUsers();
   const [user, setUser] = useState<User | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [actionPwdOpen, setActionPwdOpen] = useState(false);
+  const [actionPwd, setActionPwd] = useState("");
+  const [actionPwdError, setActionPwdError] = useState("");
+  const [pendingAction, setPendingAction] = useState<
+    "new" | "delete" | "edit" | null
+  >(null);
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -137,13 +144,63 @@ export default function UserDetailPage() {
   const confirmDeleteUser = async () => {
     if (user) {
       try {
-        await removeUser(user.id!);
-        setDeleteDialogOpen(false);
-        router.push("/users");
+        // First ask for action password
+        setActionPwd("");
+        setActionPwdError("");
+        setPendingAction("delete");
+        setActionPwdOpen(true);
       } catch (error) {
         console.error("Lỗi khi xóa nhân viên:", error);
       }
     }
+  };
+
+  const handleConfirmActionPwd = async () => {
+    const { getAppSettings } = await import("@/services/settings");
+    const settings = await getAppSettings();
+    const expected = settings?.actionPassword || "";
+    if (!actionPwd.trim()) {
+      setActionPwdError("Vui lòng nhập mật khẩu hành động");
+      return;
+    }
+    if (!expected) {
+      setActionPwdError(
+        "Chưa thiết lập mật khẩu hành động. Vui lòng vào Quản lý mật khẩu để đặt trước."
+      );
+      return;
+    }
+    if (actionPwd !== expected) {
+      setActionPwdError("Mật khẩu không đúng");
+      return;
+    }
+    try {
+      if (pendingAction === "delete" && user) {
+        await removeUser(user.id!);
+        setDeleteDialogOpen(false);
+        router.push("/users");
+      } else if (pendingAction === "new") {
+        router.push("/users/new");
+      } else if (pendingAction === "edit" && user) {
+        router.push(`/users/${user.id}/edit`);
+      }
+      setActionPwdOpen(false);
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const requestNavigateNew = () => {
+    setActionPwd("");
+    setActionPwdError("");
+    setPendingAction("new");
+    setActionPwdOpen(true);
+  };
+
+  const requestNavigateEdit = () => {
+    setActionPwd("");
+    setActionPwdError("");
+    setPendingAction("edit");
+    setActionPwdOpen(true);
   };
 
   // Lấy màu cho trạng thái
@@ -386,7 +443,7 @@ export default function UserDetailPage() {
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/users/new")}
+                onClick={requestNavigateNew}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -551,10 +608,7 @@ export default function UserDetailPage() {
                 </Box>
                 <Box sx={{ display: "flex", gap: 1 }}>
                   <Tooltip title="Chỉnh sửa">
-                    <IconButton
-                      color="warning"
-                      onClick={() => router.push(`/users/${user.id}/edit`)}
-                    >
+                    <IconButton color="warning" onClick={requestNavigateEdit}>
                       <EditIcon />
                     </IconButton>
                   </Tooltip>
@@ -815,6 +869,42 @@ export default function UserDetailPage() {
                 variant="contained"
               >
                 Xóa
+              </Button>
+            </DialogActions>
+          </Dialog>
+
+          {/* Action password dialog */}
+          <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
+            <DialogTitle>Xác nhận mật khẩu</DialogTitle>
+            <DialogContent>
+              <TextField
+                autoFocus
+                margin="dense"
+                label="Mật khẩu hành động"
+                type="password"
+                fullWidth
+                value={actionPwd}
+                onChange={(e) => {
+                  setActionPwd(e.target.value);
+                  if (actionPwdError) setActionPwdError("");
+                }}
+                error={!!actionPwdError}
+                helperText={
+                  actionPwdError ||
+                  (pendingAction === "delete"
+                    ? "Nhập mật khẩu để xác nhận xóa"
+                    : "Nhập mật khẩu để xác nhận thao tác")
+                }
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
+              <Button
+                variant="contained"
+                color={pendingAction === "delete" ? "error" : "primary"}
+                onClick={handleConfirmActionPwd}
+              >
+                Xác nhận
               </Button>
             </DialogActions>
           </Dialog>

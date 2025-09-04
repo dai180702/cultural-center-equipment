@@ -150,6 +150,23 @@ export const getUserByEmployeeId = async (
   }
 };
 
+// Lấy nhân viên theo email
+export const getUserByEmail = async (email: string): Promise<User | null> => {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("email", "==", email));
+    const querySnapshot = await getDocs(q);
+    if (!querySnapshot.empty) {
+      const docSnap = querySnapshot.docs[0];
+      return { id: docSnap.id, ...(docSnap.data() as any) } as User;
+    }
+    return null;
+  } catch (error) {
+    console.error("Error getting user by email:", error);
+    throw error;
+  }
+};
+
 // Lọc nhân viên theo điều kiện
 export const getUsersByFilters = async (
   filters: UserFilters

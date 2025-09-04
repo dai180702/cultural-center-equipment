@@ -26,6 +26,10 @@ import {
   Drawer,
   useTheme,
   IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -123,6 +127,10 @@ export default function EditUserPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [activeStep, setActiveStep] = useState(0); // giữ state để tránh chỉnh sửa lớn, nhưng không dùng điều hướng
   const [initialLoading, setInitialLoading] = useState(true);
+  // Action password state
+  const [actionPwdOpen, setActionPwdOpen] = useState(false);
+  const [actionPwd, setActionPwd] = useState("");
+  const [actionPwdError, setActionPwdError] = useState("");
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -289,7 +297,7 @@ export default function EditUserPage() {
   // Không còn điều hướng step
 
   // Xử lý submit form
-  const handleSubmit = async () => {
+  const performUpdate = async () => {
     // Validate toàn bộ các bước cùng lúc
     if (!validateStep(-1)) {
       return;
@@ -322,6 +330,34 @@ export default function EditUserPage() {
     } catch (error) {
       console.error("Lỗi khi cập nhật nhân viên:", error);
     }
+  };
+
+  const handleSubmit = () => {
+    setActionPwd("");
+    setActionPwdError("");
+    setActionPwdOpen(true);
+  };
+
+  const handleConfirmActionPwd = async () => {
+    const { getAppSettings } = await import("@/services/settings");
+    const settings = await getAppSettings();
+    const expected = settings?.actionPassword || "";
+    if (!actionPwd.trim()) {
+      setActionPwdError("Vui lòng nhập mật khẩu hành động");
+      return;
+    }
+    if (!expected) {
+      setActionPwdError(
+        "Chưa thiết lập mật khẩu hành động. Vui lòng vào Quản lý mật khẩu để đặt trước."
+      );
+      return;
+    }
+    if (actionPwd !== expected) {
+      setActionPwdError("Mật khẩu không đúng");
+      return;
+    }
+    setActionPwdOpen(false);
+    await performUpdate();
   };
 
   // Xử lý hủy
@@ -893,6 +929,34 @@ export default function EditUserPage() {
             </CardContent>
           </Card>
         </Container>
+        {/* Password confirmation dialog */}
+        <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
+          <DialogTitle>Xác nhận mật khẩu</DialogTitle>
+          <DialogContent>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="Mật khẩu hành động"
+              type="password"
+              fullWidth
+              value={actionPwd}
+              onChange={(e) => {
+                setActionPwd(e.target.value);
+                if (actionPwdError) setActionPwdError("");
+              }}
+              error={!!actionPwdError}
+              helperText={
+                actionPwdError || "Nhập mật khẩu để xác nhận thao tác cập nhật"
+              }
+            />
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
+            <Button variant="contained" onClick={handleConfirmActionPwd}>
+              Xác nhận
+            </Button>
+          </DialogActions>
+        </Dialog>
       </Box>
     </Box>
   );
