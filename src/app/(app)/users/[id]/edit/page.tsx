@@ -94,7 +94,7 @@ export default function EditUserPage() {
     position: string;
     startDate: string;
     status: "active" | "inactive" | "suspended";
-    role: "admin" | "manager" | "staff" | "technician";
+    role: "director" | "deputy_director" | "manager" | "staff" | "technician";
     address: string;
     emergencyContact: {
       name: string;
@@ -142,6 +142,7 @@ export default function EditUserPage() {
   const [usersMenuOpen, setUsersMenuOpen] = useState(true);
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
@@ -152,6 +153,23 @@ export default function EditUserPage() {
     if (!pathname) return;
     if (pathname.startsWith("/users")) setUsersMenuOpen(true);
   }, [pathname]);
+
+  // Load current user's role to control role editing permission
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!currentUser?.email) return;
+        const { getUserByEmail } = await import("@/services/users");
+        const profile = await getUserByEmail(currentUser.email);
+        setCurrentUserRole(profile?.role || null);
+      } catch (e) {
+        // ignore errors
+      }
+    })();
+  }, [currentUser?.email]);
+
+  const canEditRole =
+    currentUserRole === "director" || currentUserRole === "deputy_director";
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const handleLogout = async () => {
@@ -321,6 +339,11 @@ export default function EditUserPage() {
         // Loại bỏ notes nếu rỗng
         notes: formData.notes.trim() || undefined,
       };
+
+      // Only director or deputy_director can change role
+      if (!canEditRole) {
+        delete (userData as any).role;
+      }
 
       // Loại bỏ các trường undefined để tránh lỗi updateDoc
       const cleanedUserData = JSON.parse(JSON.stringify(userData));
@@ -550,19 +573,7 @@ export default function EditUserPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{ "& .MuiDrawer-paper": { width: 280, bgcolor: "primary.main" } }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {!isMobile && <SidebarContent />}
-
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <Box
           sx={{
@@ -577,13 +588,7 @@ export default function EditUserPage() {
             zIndex: 1000,
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
-        >
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
-        </Box>
+        ></Box>
 
         <Container maxWidth="lg" sx={{ py: 4 }}>
           {/* Header */}
@@ -780,9 +785,13 @@ export default function EditUserPage() {
                         onChange={(e) =>
                           handleInputChange("role", e.target.value)
                         }
+                        disabled={!canEditRole}
                       >
-                        <MenuItem value="admin">Quản trị viên</MenuItem>
-                        <MenuItem value="manager">Quản lý</MenuItem>
+                        <MenuItem value="director">Giám đốc</MenuItem>
+                        <MenuItem value="deputy_director">
+                          Phó giám đốc
+                        </MenuItem>
+                        <MenuItem value="manager">Trưởng phòng</MenuItem>
                         <MenuItem value="staff">Nhân viên</MenuItem>
                         <MenuItem value="technician">Kỹ thuật viên</MenuItem>
                       </Select>

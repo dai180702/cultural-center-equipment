@@ -1,0 +1,1138 @@
+"use client";
+// Quản lý kho thiết bị - Trang danh sách kho thiết bị
+import {
+  Box,
+  Button,
+  Typography,
+  Card,
+  CardContent,
+  Container,
+  TextField,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Alert,
+  Snackbar,
+  CircularProgress,
+  InputAdornment,
+  Pagination,
+  Tooltip,
+  Divider,
+  Drawer,
+  Stack,
+  Menu,
+  MenuList,
+  ListItemIcon,
+  ListItemText,
+} from "@mui/material";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import {
+  getWarehouseDevices,
+  deleteWarehouseDevice,
+  searchWarehouseDevices,
+} from "@/services/warehouse";
+import { Device } from "@/services/devices";
+import {
+  Add as AddIcon,
+  Search as SearchIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
+  Visibility as ViewIcon,
+  FilterList as FilterIcon,
+  Refresh as RefreshIcon,
+  FileDownload as ExportIcon,
+  Assessment as ReportIcon,
+  Clear as ClearIcon,
+} from "@mui/icons-material";
+import { formatDate } from "@/lib/formatDate";
+
+const deviceStatuses = [
+  { value: "all", label: "Tất cả", color: "default" },
+  { value: "active", label: "Đang hoạt động", color: "success" },
+  { value: "maintenance", label: "Cần bảo trì", color: "warning" },
+  { value: "broken", label: "Đã hỏng", color: "error" },
+  { value: "retired", label: "Thanh lý", color: "default" },
+];
+
+const deviceCategories = [
+  "Tất cả",
+  "Máy tính",
+  "Máy in",
+  "Thiết bị mạng",
+  "Thiết bị âm thanh",
+  "Thiết bị video",
+  "Thiết bị thể thao",
+  "Thiết bị văn phòng",
+  "Khác",
+];
+
+export default function WarehouseManagementPage() {
+  const { currentUser } = useAuth();
+  const router = useRouter();
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [allDevices, setAllDevices] = useState<Device[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [categoryFilter, setCategoryFilter] = useState("Tất cả");
+  const [locationFilter, setLocationFilter] = useState("Tất cả");
+  const [departmentFilter, setDepartmentFilter] = useState("Tất cả");
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deviceToDelete, setDeviceToDelete] = useState<Device | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [devicesPerPage] = useState(10);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false);
+  const [exportMenuAnchor, setExportMenuAnchor] = useState<null | HTMLElement>(
+    null
+  );
+  const [reportDialogOpen, setReportDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (!currentUser) {
+      router.replace("/login");
+      return;
+    }
+    loadDevices();
+  }, [currentUser, router]);
+
+  const loadDevices = async () => {
+    try {
+      setLoading(true);
+      const allDevicesData = await getWarehouseDevices();
+      setAllDevices(allDevicesData);
+      setDevices(allDevicesData);
+    } catch (err) {
+      console.error("Error loading devices:", err);
+      setError("Không thể tải danh sách thiết bị");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchTerm.trim()) {
+      setDevices(allDevices);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const searchResults = await searchWarehouseDevices(searchTerm);
+      setDevices(searchResults);
+    } catch (err) {
+      setError("Không thể tìm kiếm thiết bị");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFilter = () => {
+    let filteredDevices = allDevices;
+
+    if (statusFilter !== "all") {
+      filteredDevices = filteredDevices.filter(
+        (device) => device.status === statusFilter
+      );
+    }
+
+    if (categoryFilter !== "Tất cả") {
+      filteredDevices = filteredDevices.filter(
+        (device) => device.category === categoryFilter
+      );
+    }
+
+    if (locationFilter !== "Tất cả") {
+      filteredDevices = filteredDevices.filter(
+        (device) => device.location === locationFilter
+      );
+    }
+
+    if (departmentFilter !== "Tất cả") {
+      filteredDevices = filteredDevices.filter(
+        (device) => device.department === departmentFilter
+      );
+    }
+
+    if (searchTerm.trim()) {
+      const searchLower = searchTerm.toLowerCase();
+      filteredDevices = filteredDevices.filter(
+        (device) =>
+          device.name?.toLowerCase().includes(searchLower) ||
+          device.code?.toLowerCase().includes(searchLower) ||
+          device.brand?.toLowerCase().includes(searchLower) ||
+          device.model?.toLowerCase().includes(searchLower) ||
+          device.serialNumber?.toLowerCase().includes(searchLower) ||
+          device.location?.toLowerCase().includes(searchLower) ||
+          device.department?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setDevices(filteredDevices);
+    setCurrentPage(1);
+    setFilterDrawerOpen(false);
+  };
+
+  const handleClearFilters = () => {
+    setStatusFilter("all");
+    setCategoryFilter("Tất cả");
+    setLocationFilter("Tất cả");
+    setDepartmentFilter("Tất cả");
+    setSearchTerm("");
+    setDevices(allDevices);
+    setCurrentPage(1);
+  };
+
+  // Get unique locations and departments from devices
+  const getUniqueLocations = () => {
+    const locations = new Set<string>();
+    allDevices.forEach((device) => {
+      if (device.location) locations.add(device.location);
+    });
+    return Array.from(locations).sort();
+  };
+
+  const getUniqueDepartments = () => {
+    const departments = new Set<string>();
+    allDevices.forEach((device) => {
+      if (device.department) departments.add(device.department);
+    });
+    return Array.from(departments).sort();
+  };
+
+  const handleDeleteClick = (device: Device) => {
+    setDeviceToDelete(device);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deviceToDelete?.id) return;
+
+    try {
+      setDeleting(true);
+      await deleteWarehouseDevice(deviceToDelete.id);
+      setSuccess("Thiết bị đã được xóa khỏi kho thành công");
+      const updatedDevices = devices.filter(
+        (d) => d.id !== deviceToDelete.id
+      );
+      const updatedAllDevices = allDevices.filter(
+        (d) => d.id !== deviceToDelete.id
+      );
+      setDevices(updatedDevices);
+      setAllDevices(updatedAllDevices);
+      setDeleteDialogOpen(false);
+      setDeviceToDelete(null);
+    } catch (err) {
+      setError("Không thể xóa thiết bị khỏi kho");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleViewDetails = (device: Device) => {
+    setSelectedDevice(device);
+    setDetailDrawerOpen(true);
+  };
+
+  const handleEdit = (device: Device) => {
+    router.push(`/warehouse/${device.id}/edit`);
+  };
+
+  const handleAddNew = () => {
+    router.push("/warehouse/new");
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "active":
+        return "success";
+      case "maintenance":
+        return "warning";
+      case "broken":
+        return "error";
+      case "retired":
+        return "default";
+      default:
+        return "default";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "active":
+        return "Đang hoạt động";
+      case "maintenance":
+        return "Cần bảo trì";
+      case "broken":
+        return "Đã hỏng";
+      case "retired":
+        return "Thanh lý";
+      default:
+        return status;
+    }
+  };
+
+  // Pagination
+  const indexOfLastDevice = currentPage * devicesPerPage;
+  const indexOfFirstDevice = indexOfLastDevice - devicesPerPage;
+  const currentDevices = devices.slice(indexOfFirstDevice, indexOfLastDevice);
+  const totalPages = Math.ceil(devices.length / devicesPerPage);
+
+  const handlePageChange = (
+    event: React.ChangeEvent<unknown>,
+    value: number
+  ) => {
+    setCurrentPage(value);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  // Export functions
+  const handleExportExcel = () => {
+    // Convert devices to CSV format
+    const headers = [
+      "Mã thiết bị",
+      "Tên thiết bị",
+      "Danh mục",
+      "Thương hiệu",
+      "Model",
+      "Số serial",
+      "Trạng thái",
+      "Vị trí",
+      "Phòng ban",
+      "Ngày mua",
+      "Giá mua",
+    ];
+
+    const rows = devices.map((device) => [
+      device.code || "",
+      device.name || "",
+      device.category || "",
+      device.brand || "",
+      device.model || "",
+      device.serialNumber || "",
+      getStatusLabel(device.status),
+      device.location || "",
+      device.department || "",
+      device.purchaseDate || "",
+      device.purchasePrice?.toString() || "",
+    ]);
+
+    const csvContent =
+      headers.join(",") +
+      "\n" +
+      rows.map((row) => row.map((cell) => `"${cell}"`).join(",")).join("\n");
+
+    const blob = new Blob(["\uFEFF" + csvContent], {
+      type: "text/csv;charset=utf-8;",
+    });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", `danh_sach_kho_thiet_bi_${new Date().getTime()}.csv`);
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    setSuccess("Xuất file Excel thành công");
+    setExportMenuAnchor(null);
+  };
+
+  const handleExportPDF = () => {
+    // Simple PDF export using window.print
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+      setError("Không thể mở cửa sổ in");
+      return;
+    }
+
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Danh sách kho thiết bị</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            h1 { text-align: center; }
+            table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+            th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+            th { background-color: #f2f2f2; }
+          </style>
+        </head>
+        <body>
+          <h1>Danh sách kho thiết bị</h1>
+          <p>Ngày xuất: ${new Date().toLocaleDateString("vi-VN")}</p>
+          <p>Tổng số thiết bị: ${devices.length}</p>
+          <table>
+            <thead>
+              <tr>
+                <th>Mã TB</th>
+                <th>Tên thiết bị</th>
+                <th>Danh mục</th>
+                <th>Thương hiệu</th>
+                <th>Trạng thái</th>
+                <th>Vị trí</th>
+                <th>Phòng ban</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${devices
+                .map(
+                  (device) => `
+                <tr>
+                  <td>${device.code || ""}</td>
+                  <td>${device.name || ""}</td>
+                  <td>${device.category || ""}</td>
+                  <td>${device.brand || ""}</td>
+                  <td>${getStatusLabel(device.status)}</td>
+                  <td>${device.location || ""}</td>
+                  <td>${device.department || ""}</td>
+                </tr>
+              `
+                )
+                .join("")}
+            </tbody>
+          </table>
+        </body>
+      </html>
+    `;
+
+    printWindow.document.write(htmlContent);
+    printWindow.document.close();
+    printWindow.print();
+
+    setSuccess("Xuất file PDF thành công");
+    setExportMenuAnchor(null);
+  };
+
+  // Report statistics
+  const getReportStats = () => {
+    const total = devices.length;
+    const byStatus = devices.reduce((acc, device) => {
+      acc[device.status] = (acc[device.status] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const byCategory = devices.reduce((acc, device) => {
+      acc[device.category] = (acc[device.category] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const byDepartment = devices.reduce((acc, device) => {
+      const dept = device.department || "Chưa phân bổ";
+      acc[dept] = (acc[dept] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    const byLocation = devices.reduce((acc, device) => {
+      const loc = device.location || "Chưa xác định";
+      acc[loc] = (acc[loc] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return { total, byStatus, byCategory, byDepartment, byLocation };
+  };
+
+  const stats = getReportStats();
+
+  return (
+    <Container maxWidth="xl" sx={{ py: 4 }}>
+      {/* Header */}
+      <Box sx={{ mb: 4 }}>
+        <Typography variant="h4" fontWeight="bold" gutterBottom>
+          Quản lý kho thiết bị
+        </Typography>
+        <Typography variant="body1" color="text.secondary">
+          Danh sách và quản lý tất cả thiết bị trong trung tâm (trong kho và đang sử dụng)
+        </Typography>
+      </Box>
+
+      {/* Action Bar */}
+      <Card sx={{ mb: 3 }}>
+        <CardContent>
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "1fr",
+                sm: "repeat(2, 1fr)",
+                md: "2fr 1fr 1fr 1fr 1fr",
+              },
+              gap: 2,
+              alignItems: "center",
+            }}
+          >
+            {/* Search */}
+            <TextField
+              fullWidth
+              placeholder="Tìm kiếm thiết bị..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyPress={(e) => {
+                if (e.key === "Enter") {
+                  handleFilter();
+                }
+              }}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: searchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => {
+                        setSearchTerm("");
+                        handleClearFilters();
+                      }}
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+
+            {/* Filters */}
+            <FormControl fullWidth>
+              <InputLabel>Trạng thái</InputLabel>
+              <Select
+                value={statusFilter}
+                label="Trạng thái"
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                {deviceStatuses.map((status) => (
+                  <MenuItem key={status.value} value={status.value}>
+                    {status.label}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Danh mục</InputLabel>
+              <Select
+                value={categoryFilter}
+                label="Danh mục"
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                {deviceCategories.map((category) => (
+                  <MenuItem key={category} value={category}>
+                    {category}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Vị trí</InputLabel>
+              <Select
+                value={locationFilter}
+                label="Vị trí"
+                onChange={(e) => setLocationFilter(e.target.value)}
+              >
+                <MenuItem value="Tất cả">Tất cả</MenuItem>
+                {getUniqueLocations().map((location) => (
+                  <MenuItem key={location} value={location}>
+                    {location}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <FormControl fullWidth>
+              <InputLabel>Phòng ban</InputLabel>
+              <Select
+                value={departmentFilter}
+                label="Phòng ban"
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                <MenuItem value="Tất cả">Tất cả</MenuItem>
+                {getUniqueDepartments().map((department) => (
+                  <MenuItem key={department} value={department}>
+                    {department}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+
+          {/* Action Buttons */}
+          <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Button
+              variant="outlined"
+              startIcon={<FilterIcon />}
+              onClick={handleFilter}
+            >
+              Áp dụng bộ lọc
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ClearIcon />}
+              onClick={handleClearFilters}
+            >
+              Xóa bộ lọc
+            </Button>
+          </Box>
+
+          {/* Additional Actions */}
+          <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+            <Button
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={handleAddNew}
+            >
+              Thêm thiết bị mới
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ExportIcon />}
+              onClick={(e) => setExportMenuAnchor(e.currentTarget)}
+            >
+              Xuất thiết bị
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<ReportIcon />}
+              onClick={() => setReportDialogOpen(true)}
+            >
+              Báo cáo
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={loadDevices}
+            >
+              Làm mới
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+
+      {/* Statistics Cards */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
+          gap: 2,
+          mb: 3,
+        }}
+      >
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Tổng số thiết bị
+            </Typography>
+            <Typography variant="h4" fontWeight="bold">
+              {devices.length}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Đang hoạt động
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="success.main">
+              {stats.byStatus.active || 0}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Cần bảo trì
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="warning.main">
+              {stats.byStatus.maintenance || 0}
+            </Typography>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
+            <Typography variant="h6" color="text.secondary" gutterBottom>
+              Đã hỏng
+            </Typography>
+            <Typography variant="h4" fontWeight="bold" color="error.main">
+              {stats.byStatus.broken || 0}
+            </Typography>
+          </CardContent>
+        </Card>
+      </Box>
+
+      {/* Devices Table */}
+      <Card>
+        <CardContent>
+          {loading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : currentDevices.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="h6" color="text.secondary">
+                Không có thiết bị nào
+              </Typography>
+            </Box>
+          ) : (
+            <>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Mã TB</TableCell>
+                      <TableCell>Tên thiết bị</TableCell>
+                      <TableCell>Danh mục</TableCell>
+                      <TableCell>Thương hiệu</TableCell>
+                      <TableCell>Model</TableCell>
+                      <TableCell>Trạng thái</TableCell>
+                      <TableCell>Vị trí</TableCell>
+                      <TableCell>Phòng ban</TableCell>
+                      <TableCell align="center">Thao tác</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {currentDevices.map((device) => (
+                      <TableRow key={device.id} hover>
+                        <TableCell>{device.code}</TableCell>
+                        <TableCell>{device.name}</TableCell>
+                        <TableCell>{device.category}</TableCell>
+                        <TableCell>{device.brand}</TableCell>
+                        <TableCell>{device.model}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={getStatusLabel(device.status)}
+                            color={getStatusColor(device.status) as any}
+                            size="small"
+                          />
+                        </TableCell>
+                        <TableCell>{device.location}</TableCell>
+                        <TableCell>{device.department}</TableCell>
+                        <TableCell align="center">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            <Tooltip title="Xem chi tiết">
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                onClick={() => handleViewDetails(device)}
+                              >
+                                <ViewIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Sửa">
+                              <IconButton
+                                size="small"
+                                color="warning"
+                                onClick={() => handleEdit(device)}
+                              >
+                                <EditIcon />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="Xóa">
+                              <IconButton
+                                size="small"
+                                color="error"
+                                onClick={() => handleDeleteClick(device)}
+                              >
+                                <DeleteIcon />
+                              </IconButton>
+                            </Tooltip>
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Box sx={{ display: "flex", justifyContent: "center", mt: 3 }}>
+                  <Pagination
+                    count={totalPages}
+                    page={currentPage}
+                    onChange={handlePageChange}
+                    color="primary"
+                  />
+                </Box>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+        <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Bạn có chắc chắn muốn xóa thiết bị{" "}
+            <strong>{deviceToDelete?.name}</strong> không? Hành động này không
+            thể hoàn tác.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            color="error"
+            variant="contained"
+            disabled={deleting}
+          >
+            {deleting ? <CircularProgress size={24} /> : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Device Details Drawer */}
+      <Drawer
+        anchor="right"
+        open={detailDrawerOpen}
+        onClose={() => setDetailDrawerOpen(false)}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 500 } } }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            Chi tiết thiết bị
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+
+          {selectedDevice && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã thiết bị
+                </Typography>
+                <Typography variant="body1">{selectedDevice.code}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Tên thiết bị
+                </Typography>
+                <Typography variant="body1">{selectedDevice.name}</Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Danh mục
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.category}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Thương hiệu
+                  </Typography>
+                  <Typography variant="body1">{selectedDevice.brand}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Model
+                  </Typography>
+                  <Typography variant="body1">{selectedDevice.model}</Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Số serial
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.serialNumber}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Trạng thái
+                  </Typography>
+                  <Chip
+                    label={getStatusLabel(selectedDevice.status)}
+                    color={getStatusColor(selectedDevice.status) as any}
+                    size="small"
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Vị trí
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.location}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Phòng ban
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.department}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày mua
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.purchaseDate
+                      ? formatDate(selectedDevice.purchaseDate)
+                      : "N/A"}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Giá mua
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.purchasePrice
+                      ? new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(selectedDevice.purchasePrice)
+                      : "N/A"}
+                  </Typography>
+                </Box>
+              </Box>
+              {selectedDevice.description && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Mô tả
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.description}
+                  </Typography>
+                </Box>
+              )}
+              {selectedDevice.specifications && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Thông số kỹ thuật
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.specifications}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
+            <Button
+              variant="contained"
+              startIcon={<EditIcon />}
+              onClick={() => {
+                if (selectedDevice) {
+                  handleEdit(selectedDevice);
+                }
+              }}
+              fullWidth
+            >
+              Sửa thiết bị
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => setDetailDrawerOpen(false)}
+              fullWidth
+            >
+              Đóng
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
+
+      {/* Export Menu */}
+      <Menu
+        anchorEl={exportMenuAnchor}
+        open={Boolean(exportMenuAnchor)}
+        onClose={() => setExportMenuAnchor(null)}
+      >
+        <MenuList>
+          <MenuItem onClick={handleExportExcel}>
+            <ListItemIcon>
+              <ExportIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Xuất Excel (CSV)</ListItemText>
+          </MenuItem>
+          <MenuItem onClick={handleExportPDF}>
+            <ListItemIcon>
+              <ExportIcon fontSize="small" />
+            </ListItemIcon>
+            <ListItemText>Xuất PDF</ListItemText>
+          </MenuItem>
+        </MenuList>
+      </Menu>
+
+      {/* Report Dialog */}
+      <Dialog
+        open={reportDialogOpen}
+        onClose={() => setReportDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Báo cáo kho thiết bị</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 1 }}>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Tổng quan
+              </Typography>
+              <Typography variant="body1">
+                Tổng số thiết bị: <strong>{stats.total}</strong>
+              </Typography>
+            </Box>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Theo trạng thái
+              </Typography>
+              <Stack spacing={1}>
+                {deviceStatuses
+                  .filter((s) => s.value !== "all")
+                  .map((status) => (
+                    <Box
+                      key={status.value}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography>{status.label}:</Typography>
+                      <Chip
+                        label={stats.byStatus[status.value] || 0}
+                        color={status.color as any}
+                        size="small"
+                      />
+                    </Box>
+                  ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Theo danh mục
+              </Typography>
+              <Stack spacing={1}>
+                {Object.entries(stats.byCategory)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([category, count]) => (
+                    <Box
+                      key={category}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography>{category}:</Typography>
+                      <Chip label={count} size="small" />
+                    </Box>
+                  ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Theo phòng ban
+              </Typography>
+              <Stack spacing={1}>
+                {Object.entries(stats.byDepartment)
+                  .sort(([, a], [, b]) => b - a)
+                  .map(([department, count]) => (
+                    <Box
+                      key={department}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography>{department}:</Typography>
+                      <Chip label={count} size="small" color="primary" />
+                    </Box>
+                  ))}
+              </Stack>
+            </Box>
+            <Box>
+              <Typography variant="h6" gutterBottom>
+                Theo vị trí
+              </Typography>
+              <Stack spacing={1}>
+                {Object.entries(stats.byLocation)
+                  .sort(([, a], [, b]) => b - a)
+                  .slice(0, 10)
+                  .map(([location, count]) => (
+                    <Box
+                      key={location}
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography>{location}:</Typography>
+                      <Chip label={count} size="small" color="secondary" />
+                    </Box>
+                  ))}
+              </Stack>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setReportDialogOpen(false)}>Đóng</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbars */}
+      <Snackbar
+        open={!!success}
+        autoHideDuration={6000}
+        onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert severity="success" onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      </Snackbar>
+      <Snackbar
+        open={!!error}
+        autoHideDuration={6000}
+        onClose={() => setError(null)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert severity="error" onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      </Snackbar>
+    </Container>
+  );
+}
+

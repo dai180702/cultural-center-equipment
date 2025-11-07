@@ -12,6 +12,7 @@ import {
   getDepartments,
   getUserStatistics,
   User,
+  UserFormData,
   UserFilters,
   PaginationOptions,
 } from "@/services/users";
@@ -94,17 +95,11 @@ export const useUsers = () => {
 
   // Thêm nhân viên mới
   const createUser = useCallback(
-    async (
-      userData: Omit<User, "id" | "createdAt" | "updatedAt">,
-      password?: string
-    ) => {
+    async (userData: UserFormData, password?: string) => {
       try {
         setLoading(true);
         setError(null);
-        let userPayload = { ...userData } as Omit<
-          User,
-          "id" | "createdAt" | "updatedAt"
-        >;
+        let userPayload = { ...userData } as UserFormData;
 
         if (password) {
           // Tạo tài khoản đăng nhập và lấy uid
@@ -140,7 +135,7 @@ export const useUsers = () => {
 
   // Cập nhật nhân viên
   const editUser = useCallback(
-    async (id: string, userData: Partial<User>) => {
+    async (id: string, userData: Partial<UserFormData>) => {
       try {
         setLoading(true);
         setError(null);

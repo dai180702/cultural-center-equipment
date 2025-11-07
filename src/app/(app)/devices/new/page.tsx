@@ -1203,22 +1203,6 @@ export default function AddDevicePage() {
               >
                 Phân quyền
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => router.push("/users/activity")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Hoạt động
-              </Button>
             </Box>
           )}
 
@@ -1419,27 +1403,7 @@ export default function AddDevicePage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Mobile Drawer - Ẩn hoàn toàn trên mobile, chỉ hiện khi click menu */}
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 280,
-              bgcolor: "primary.main",
-            },
-          }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {/* Desktop Sidebar - Luôn hiển thị trên desktop */}
-      {!isMobile && <SidebarContent />}
-
-      {/* Main Content */}
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Top Header Bar */}
         <Box
@@ -1456,13 +1420,6 @@ export default function AddDevicePage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          {/* Mobile Menu Button - Hiển thị nút menu 3 gạch trên mobile */}
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
-
           {/* Right side links */}
           <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
             <Typography

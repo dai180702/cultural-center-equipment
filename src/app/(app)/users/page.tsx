@@ -328,8 +328,10 @@ export default function UsersPage() {
 
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "admin":
+      case "director":
         return "error";
+      case "deputy_director":
+        return "secondary";
       case "manager":
         return "warning";
       case "staff":
@@ -356,10 +358,12 @@ export default function UsersPage() {
 
   const getRoleText = (role: string) => {
     switch (role) {
-      case "admin":
-        return "Quản trị viên";
+      case "director":
+        return "Giám đốc";
+      case "deputy_director":
+        return "Phó giám đốc";
       case "manager":
-        return "Quản lý";
+        return "Trưởng phòng";
       case "staff":
         return "Nhân viên";
       case "technician":
@@ -895,7 +899,8 @@ export default function UsersPage() {
               >
                 Thêm mới
               </Button>
-              {currentUserRole === "manager" && (
+              {(currentUserRole === "director" ||
+                currentUserRole === "deputy_director") && (
                 <Button
                   fullWidth
                   size="small"
@@ -913,22 +918,6 @@ export default function UsersPage() {
                   Quản lý mật khẩu
                 </Button>
               )}
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => router.push("/users/activity")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Hoạt động
-              </Button>
             </Box>
           )}
 
@@ -1149,27 +1138,7 @@ export default function UsersPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Mobile Drawer - Ẩn hoàn toàn trên mobile, chỉ hiện khi click menu */}
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 280,
-              bgcolor: "primary.main",
-            },
-          }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {/* Desktop Sidebar - Luôn hiển thị trên desktop */}
-      {!isMobile && <SidebarContent />}
-
-      {/* Main Content */}
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Top Header Bar */}
         <Box
@@ -1186,13 +1155,6 @@ export default function UsersPage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          {/* Mobile Menu Button - Hiển thị nút menu 3 gạch trên mobile */}
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
-
           {/* Right side links */}
           <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
             <Typography
@@ -1325,8 +1287,11 @@ export default function UsersPage() {
                         }
                       >
                         <MenuItem value="all">Tất cả vai trò</MenuItem>
-                        <MenuItem value="admin">Quản trị viên</MenuItem>
-                        <MenuItem value="manager">Quản lý</MenuItem>
+                        <MenuItem value="director">Giám đốc</MenuItem>
+                        <MenuItem value="deputy_director">
+                          Phó giám đốc
+                        </MenuItem>
+                        <MenuItem value="manager">Trưởng phòng</MenuItem>
                         <MenuItem value="staff">Nhân viên</MenuItem>
                         <MenuItem value="technician">Kỹ thuật viên</MenuItem>
                       </Select>

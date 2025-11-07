@@ -36,7 +36,28 @@ export default function ManageUserActionPasswordPage() {
     })();
   }, [currentUser?.email]);
 
-  const isManager = role === "manager";
+  const isDirectorOrDeputy = role === "director" || role === "deputy_director";
+
+  const [resetLoading, setResetLoading] = useState(false);
+  const handleReset = async () => {
+    try {
+      setError(null);
+      setSuccess(null);
+      const ok =
+        typeof window !== "undefined"
+          ? window.confirm("Bạn có chắc muốn đặt lại mật khẩu hành động?")
+          : true;
+      if (!ok) return;
+      setResetLoading(true);
+      await setActionPassword("", currentUser?.email || "unknown");
+      setCurrentMasked("(chưa thiết lập)");
+      setSuccess("Đã đặt lại mật khẩu hành động (chưa thiết lập)");
+    } catch (e: any) {
+      setError(e?.message || "Lỗi khi đặt lại mật khẩu");
+    } finally {
+      setResetLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     try {
@@ -63,7 +84,7 @@ export default function ManageUserActionPasswordPage() {
     }
   };
 
-  if (!isManager) {
+  if (!isDirectorOrDeputy) {
     return (
       <Container maxWidth="sm" sx={{ py: 6 }}>
         <Card>
@@ -90,7 +111,8 @@ export default function ManageUserActionPasswordPage() {
             Quản lý mật khẩu hành động
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Mật khẩu này dùng để xác nhận khi thêm mới và chỉnh sửa nhân viên.
+            Mật khẩu này dùng để xác nhận khi thêm mới, chỉnh sửa, xóa nhân
+            viên.
           </Typography>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -102,35 +124,65 @@ export default function ManageUserActionPasswordPage() {
               {success}
             </Alert>
           )}
-          <Box sx={{ display: "grid", gap: 2 }}>
-            <TextField
-              label="Mật khẩu hiện tại"
-              value={currentMasked}
-              InputProps={{ readOnly: true }}
-            />
-            <TextField
-              label="Mật khẩu mới"
-              type="password"
-              value={newPwd}
-              onChange={(e) => setNewPwd(e.target.value)}
-            />
-            <TextField
-              label="Xác nhận mật khẩu mới"
-              type="password"
-              value={confirmPwd}
-              onChange={(e) => setConfirmPwd(e.target.value)}
-            />
-            <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
-              <Button variant="outlined" onClick={() => router.back()}>
-                Hủy
-              </Button>
-              <Button
-                variant="contained"
-                disabled={loading}
-                onClick={handleSave}
-              >
-                {loading ? "Đang lưu..." : "Lưu"}
-              </Button>
+
+          <Box sx={{ display: "grid", gap: 3 }}>
+            {/* Quên mật khẩu */}
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Quên mật khẩu
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                Nếu quên mật khẩu, bạn có thể đặt lại mật khẩu hành động.
+              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <TextField
+                  label="Trạng thái hiện tại"
+                  value={currentMasked}
+                  InputProps={{ readOnly: true }}
+                  sx={{ flex: 1 }}
+                />
+                <Button
+                  color="error"
+                  variant="outlined"
+                  disabled={resetLoading}
+                  onClick={handleReset}
+                >
+                  {resetLoading ? "Đang đặt lại..." : "Đặt lại"}
+                </Button>
+              </Box>
+            </Box>
+
+            {/* Thay đổi mật khẩu */}
+            <Box>
+              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                Thay đổi mật khẩu
+              </Typography>
+              <Box sx={{ display: "grid", gap: 2 }}>
+                <TextField
+                  label="Mật khẩu mới"
+                  type="password"
+                  value={newPwd}
+                  onChange={(e) => setNewPwd(e.target.value)}
+                />
+                <TextField
+                  label="Xác nhận mật khẩu mới"
+                  type="password"
+                  value={confirmPwd}
+                  onChange={(e) => setConfirmPwd(e.target.value)}
+                />
+                <Box sx={{ display: "flex", gap: 2, mt: 1 }}>
+                  <Button variant="outlined" onClick={() => router.back()}>
+                    Hủy
+                  </Button>
+                  <Button
+                    variant="contained"
+                    disabled={loading}
+                    onClick={handleSave}
+                  >
+                    {loading ? "Đang lưu..." : "Lưu"}
+                  </Button>
+                </Box>
+              </Box>
             </Box>
           </Box>
         </CardContent>

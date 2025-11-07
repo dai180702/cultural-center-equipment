@@ -71,7 +71,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
-import { User } from "@/services/users";
+import { User, getUserByEmail } from "@/services/users";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function UserDetailPage() {
@@ -84,6 +84,7 @@ export default function UserDetailPage() {
 
   const { fetchUserById, removeUser, loading, error, clearError } = useUsers();
   const [user, setUser] = useState<User | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [actionPwdOpen, setActionPwdOpen] = useState(false);
   const [actionPwd, setActionPwd] = useState("");
@@ -112,6 +113,19 @@ export default function UserDetailPage() {
     if (!pathname) return;
     if (pathname.startsWith("/users")) setUsersMenuOpen(true);
   }, [pathname]);
+
+  // Load current user's role to control access to password management
+  useEffect(() => {
+    (async () => {
+      try {
+        if (!currentUser?.email) return;
+        const profile = await getUserByEmail(currentUser.email);
+        setCurrentUserRole(profile?.role || null);
+      } catch (e) {
+        // ignore
+      }
+    })();
+  }, [currentUser?.email]);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const handleLogout = async () => {
@@ -220,8 +234,10 @@ export default function UserDetailPage() {
   // Lấy màu cho vai trò
   const getRoleColor = (role: string) => {
     switch (role) {
-      case "admin":
+      case "director":
         return "error";
+      case "deputy_director":
+        return "secondary";
       case "manager":
         return "warning";
       case "staff":
@@ -250,10 +266,12 @@ export default function UserDetailPage() {
   // Lấy text hiển thị cho vai trò
   const getRoleText = (role: string) => {
     switch (role) {
-      case "admin":
-        return "Quản trị viên";
+      case "director":
+        return "Giám đốc";
+      case "deputy_director":
+        return "Phó giám đốc";
       case "manager":
-        return "Quản lý";
+        return "Trưởng phòng";
       case "staff":
         return "Nhân viên";
       case "technician":
@@ -455,6 +473,25 @@ export default function UserDetailPage() {
               >
                 Thêm mới
               </Button>
+              {(currentUserRole === "director" ||
+                currentUserRole === "deputy_director") && (
+                <Button
+                  fullWidth
+                  size="small"
+                  startIcon={<SettingsIcon />}
+                  onClick={() => router.push("/users/password")}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "white",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                    py: 0.5,
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  }}
+                >
+                  Quản lý mật khẩu
+                </Button>
+              )}
             </Box>
           )}
         </Box>
@@ -506,19 +543,7 @@ export default function UserDetailPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{ "& .MuiDrawer-paper": { width: 280, bgcolor: "primary.main" } }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {!isMobile && <SidebarContent />}
-
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <Box
           sx={{
@@ -534,11 +559,6 @@ export default function UserDetailPage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
         </Box>
 
         <Container maxWidth="lg" sx={{ py: 4 }}>

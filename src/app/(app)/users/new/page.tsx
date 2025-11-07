@@ -785,22 +785,6 @@ export default function NewUserPage() {
               >
                 Phân quyền
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => router.push("/users/activity")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Hoạt động
-              </Button>
             </Box>
           )}
 
@@ -1001,24 +985,7 @@ export default function NewUserPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 280,
-              bgcolor: "primary.main",
-            },
-          }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {!isMobile && <SidebarContent />}
-
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         <Box
           sx={{
@@ -1034,11 +1001,7 @@ export default function NewUserPage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
+   
 
           <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
             <Typography
@@ -1279,8 +1242,11 @@ export default function NewUserPage() {
                           handleInputChange("role", e.target.value)
                         }
                       >
-                        <MenuItem value="admin">Quản trị viên</MenuItem>
-                        <MenuItem value="manager">Quản lý</MenuItem>
+                        <MenuItem value="director">Giám đốc</MenuItem>
+                        <MenuItem value="deputy_director">
+                          Phó giám đốc
+                        </MenuItem>
+                        <MenuItem value="manager">Trưởng phòng</MenuItem>
                         <MenuItem value="staff">Nhân viên</MenuItem>
                         <MenuItem value="technician">Kỹ thuật viên</MenuItem>
                       </Select>

@@ -28,7 +28,7 @@ export interface User {
   position: string;
   startDate: string;
   status: "active" | "inactive" | "suspended";
-  role: "admin" | "manager" | "staff" | "technician";
+  role: "director" | "deputy_director" | "manager" | "staff" | "technician";
   avatar?: string;
   address?: string;
   emergencyContact?: {
@@ -40,6 +40,29 @@ export interface User {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+}
+
+// Dữ liệu từ form khi tạo/cập nhật người dùng
+export interface UserFormData {
+  employeeId: string;
+  fullName: string;
+  email: string;
+  phone: string;
+  department: string;
+  position: string;
+  startDate: string;
+  status: "active" | "inactive" | "suspended";
+  role: "director" | "deputy_director" | "manager" | "staff" | "technician";
+  avatar?: string;
+  address?: string;
+  emergencyContact?: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  skills?: string[];
+  notes?: string;
+  uid?: string;
 }
 
 export interface UserFilters {
@@ -214,9 +237,7 @@ export const getUsersByFilters = async (
 };
 
 // Thêm nhân viên mới
-export const addUser = async (
-  userData: Omit<User, "id" | "createdAt" | "updatedAt">
-): Promise<string> => {
+export const addUser = async (userData: UserFormData): Promise<string> => {
   try {
     const now = new Date().toISOString();
     const userRef = await addDoc(collection(db, "users"), {
@@ -258,7 +279,7 @@ export const createAuthUser = async (
 // Cập nhật thông tin nhân viên
 export const updateUser = async (
   id: string,
-  userData: Partial<User>
+  userData: Partial<UserFormData>
 ): Promise<void> => {
   try {
     const userRef = doc(db, "users", id);
@@ -319,7 +340,9 @@ export const getUserStatistics = async () => {
     ).length;
 
     const roleStats = {
-      admin: users.filter((user) => user.role === "admin").length,
+      director: users.filter((user) => user.role === "director").length,
+      deputy_director: users.filter((user) => user.role === "deputy_director")
+        .length,
       manager: users.filter((user) => user.role === "manager").length,
       staff: users.filter((user) => user.role === "staff").length,
       technician: users.filter((user) => user.role === "technician").length,

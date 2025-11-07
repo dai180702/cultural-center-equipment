@@ -47,6 +47,10 @@ import {
   searchDevices,
 } from "@/services/devices";
 import {
+  getWarehouseDevices,
+  moveDeviceFromWarehouseToDevices,
+} from "@/services/warehouse";
+import {
   Add as AddIcon,
   Search as SearchIcon,
   Edit as EditIcon,
@@ -76,6 +80,7 @@ import {
   ExpandLess as ExpandLessIcon,
   Remove as RemoveIcon,
   CalendarToday as CalendarTodayIcon,
+  Clear as ClearIcon,
 } from "@mui/icons-material";
 
 const deviceStatuses = [
@@ -124,6 +129,17 @@ export default function DevicesPage() {
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [devicesPerPage] = useState(10);
+  const [addFromWarehouseDialogOpen, setAddFromWarehouseDialogOpen] =
+    useState(false);
+  const [warehouseDevices, setWarehouseDevices] = useState<Device[]>([]);
+  const [allWarehouseDevices, setAllWarehouseDevices] = useState<Device[]>([]);
+  const [loadingWarehouse, setLoadingWarehouse] = useState(false);
+  const [selectedWarehouseDevice, setSelectedWarehouseDevice] =
+    useState<Device | null>(null);
+  const [warehouseSearchTerm, setWarehouseSearchTerm] = useState("");
+  const [selectDepartmentDialogOpen, setSelectDepartmentDialogOpen] =
+    useState(false);
+  const [selectedDepartment, setSelectedDepartment] = useState("");
 
   useEffect(() => {
     if (!currentUser) {
@@ -173,10 +189,11 @@ export default function DevicesPage() {
   const loadDevices = async () => {
     try {
       setLoading(true);
-      const allDevices = await getDevices();
-      console.log("Loaded devices from Firestore:", allDevices);
-      setAllDevices(allDevices); // Store original list
-      setDevices(allDevices); // Initialize filtered list
+      // Load only from devices collection (not warehouse)
+      const allDevicesData = await getDevices();
+      console.log("Loaded devices from Firestore:", allDevicesData);
+      setAllDevices(allDevicesData);
+      setDevices(allDevicesData);
     } catch (err) {
       console.error("Error loading devices:", err);
       setError("Không thể tải danh sách thiết bị");
@@ -235,6 +252,119 @@ export default function DevicesPage() {
     setCategoryFilter("Tất cả");
     setSearchTerm("");
     setDevices(allDevices); // Reset to original list
+  };
+
+  // Load devices from warehouse collection
+  const loadWarehouseDevices = async () => {
+    try {
+      setLoadingWarehouse(true);
+      const warehouseDevicesData = await getWarehouseDevices();
+      setAllWarehouseDevices(warehouseDevicesData);
+      setWarehouseDevices(warehouseDevicesData);
+      setWarehouseSearchTerm(""); // Reset search when loading
+    } catch (err) {
+      console.error("Error loading warehouse devices:", err);
+      setError("Không thể tải danh sách thiết bị từ kho");
+    } finally {
+      setLoadingWarehouse(false);
+    }
+  };
+
+  // Filter warehouse devices by search term
+  const handleWarehouseSearch = () => {
+    if (!warehouseSearchTerm.trim()) {
+      setWarehouseDevices(allWarehouseDevices);
+      return;
+    }
+
+    const filtered = allWarehouseDevices.filter((device) => {
+      const searchFields = [
+        device.name,
+        device.code,
+        device.brand,
+        device.model,
+        device.serialNumber,
+        device.category,
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      return searchFields.includes(warehouseSearchTerm.toLowerCase());
+    });
+
+    setWarehouseDevices(filtered);
+  };
+
+  // Handle search input change
+  useEffect(() => {
+    if (warehouseSearchTerm.trim() === "") {
+      setWarehouseDevices(allWarehouseDevices);
+    } else {
+      const filtered = allWarehouseDevices.filter((device) => {
+        const searchFields = [
+          device.name,
+          device.code,
+          device.brand,
+          device.model,
+          device.serialNumber,
+          device.category,
+        ]
+          .join(" ")
+          .toLowerCase();
+
+        return searchFields.includes(warehouseSearchTerm.toLowerCase());
+      });
+      setWarehouseDevices(filtered);
+    }
+  }, [warehouseSearchTerm, allWarehouseDevices]);
+
+  // Open dialog to add device from warehouse
+  const handleAddFromWarehouse = () => {
+    setAddFromWarehouseDialogOpen(true);
+    loadWarehouseDevices();
+  };
+
+  // Handle selecting device from warehouse - open department selection dialog
+  const handleSelectWarehouseDevice = (device: Device) => {
+    setSelectedWarehouseDevice(device);
+    setSelectedDepartment("");
+    setSelectDepartmentDialogOpen(true);
+  };
+
+  // Confirm adding device with selected department
+  const handleConfirmAddDeviceWithDepartment = async () => {
+    if (!selectedWarehouseDevice?.id || !selectedDepartment) {
+      setError("Vui lòng chọn phòng ban");
+      return;
+    }
+
+    try {
+      setLoadingWarehouse(true);
+      // Move device from warehouse collection to devices collection with department
+      await moveDeviceFromWarehouseToDevices(
+        selectedWarehouseDevice.id,
+        currentUser?.uid,
+        currentUser?.email || "Người dùng",
+        selectedDepartment
+      );
+
+      // Reload devices to include the new one
+      await loadDevices();
+      // Reload warehouse devices to remove the selected one
+      await loadWarehouseDevices();
+      setSelectDepartmentDialogOpen(false);
+      setAddFromWarehouseDialogOpen(false);
+      setSelectedWarehouseDevice(null);
+      setSelectedDepartment("");
+      setSuccess(
+        `Đã thêm thiết bị "${selectedWarehouseDevice.name}" vào phòng ban "${selectedDepartment}" thành công`
+      );
+    } catch (err) {
+      console.error("Error adding device from warehouse:", err);
+      setError("Không thể thêm thiết bị từ kho");
+    } finally {
+      setLoadingWarehouse(false);
+    }
   };
 
   const handleDeleteClick = (device: Device) => {
@@ -436,8 +566,8 @@ export default function DevicesPage() {
               <Button
                 fullWidth
                 size="small"
-                startIcon={<AddIcon />}
-                onClick={() => router.push("/devices/new")}
+                startIcon={<InventoryIcon />}
+                onClick={handleAddFromWarehouse}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -447,7 +577,7 @@ export default function DevicesPage() {
                   "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
                 }}
               >
-                Thêm thiết bị mới
+                Thêm thiết bị từ kho
               </Button>
               <Button
                 fullWidth
@@ -849,22 +979,6 @@ export default function DevicesPage() {
               >
                 Phân quyền
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => router.push("/users/activity")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Hoạt động
-              </Button>
             </Box>
           )}
 
@@ -1065,27 +1179,7 @@ export default function DevicesPage() {
 
   return (
     <Box sx={{ display: "flex", minHeight: "100vh" }}>
-      {/* Mobile Drawer - Ẩn hoàn toàn trên mobile, chỉ hiện khi click menu */}
-      {isMobile && (
-        <Drawer
-          anchor="left"
-          open={sidebarOpen}
-          onClose={() => setSidebarOpen(false)}
-          sx={{
-            "& .MuiDrawer-paper": {
-              width: 280,
-              bgcolor: "primary.main",
-            },
-          }}
-        >
-          <SidebarContent />
-        </Drawer>
-      )}
-
-      {/* Desktop Sidebar - Luôn hiển thị trên desktop */}
-      {!isMobile && <SidebarContent />}
-
-      {/* Main Content */}
+      {/* Main Content (sidebar dùng layout chung) */}
       <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
         {/* Top Header Bar */}
         <Box
@@ -1102,13 +1196,6 @@ export default function DevicesPage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-          {/* Mobile Menu Button - Hiển thị nút menu 3 gạch trên mobile */}
-          {isMobile && (
-            <IconButton onClick={toggleSidebar} sx={{ color: "white" }}>
-              <MenuIcon />
-            </IconButton>
-          )}
-
           {/* Right side links */}
           <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
             <Typography
@@ -1450,11 +1537,11 @@ export default function DevicesPage() {
             {/* Floating Action Button */}
             <Fab
               color="primary"
-              aria-label="add"
+              aria-label="add from warehouse"
               sx={{ position: "fixed", bottom: 24, right: 24 }}
-              onClick={() => router.push("/devices/new")}
+              onClick={handleAddFromWarehouse}
             >
-              <AddIcon />
+              <InventoryIcon />
             </Fab>
           </Container>
         </Box>
@@ -1483,6 +1570,176 @@ export default function DevicesPage() {
             startIcon={deleting ? <CircularProgress size={20} /> : null}
           >
             {deleting ? "Đang xóa..." : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Device from Warehouse Dialog */}
+      <Dialog
+        open={addFromWarehouseDialogOpen}
+        onClose={() => {
+          setAddFromWarehouseDialogOpen(false);
+          setSelectedWarehouseDevice(null);
+        }}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>Chọn thiết bị từ kho</DialogTitle>
+        <DialogContent>
+          {/* Search Bar */}
+          <Box sx={{ mt: 2, mb: 2 }}>
+            <TextField
+              fullWidth
+              placeholder="Tìm kiếm thiết bị (tên, mã, thương hiệu, model...)"
+              value={warehouseSearchTerm}
+              onChange={(e) => setWarehouseSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                ),
+                endAdornment: warehouseSearchTerm && (
+                  <InputAdornment position="end">
+                    <IconButton
+                      size="small"
+                      onClick={() => setWarehouseSearchTerm("")}
+                    >
+                      <ClearIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </Box>
+
+          {loadingWarehouse ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : warehouseDevices.length === 0 ? (
+            <Box sx={{ textAlign: "center", py: 4 }}>
+              <Typography variant="h6" color="text.secondary" gutterBottom>
+                {warehouseSearchTerm
+                  ? "Không tìm thấy thiết bị"
+                  : "Không có thiết bị nào trong kho"}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {warehouseSearchTerm
+                  ? "Thử tìm kiếm với từ khóa khác"
+                  : "Tất cả thiết bị trong kho đã được thêm vào danh sách quản lý"}
+              </Typography>
+            </Box>
+          ) : (
+            <TableContainer sx={{ maxHeight: 400 }}>
+              <Table stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Mã TB</TableCell>
+                    <TableCell>Tên thiết bị</TableCell>
+                    <TableCell>Danh mục</TableCell>
+                    <TableCell>Thương hiệu</TableCell>
+                    <TableCell>Vị trí</TableCell>
+                    <TableCell align="center">Thao tác</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {warehouseDevices.map((device) => (
+                    <TableRow key={device.id} hover>
+                      <TableCell>{device.code}</TableCell>
+                      <TableCell>{device.name}</TableCell>
+                      <TableCell>{device.category}</TableCell>
+                      <TableCell>{device.brand}</TableCell>
+                      <TableCell>{device.location}</TableCell>
+                      <TableCell align="center">
+                        <Button
+                          variant="contained"
+                          size="small"
+                          startIcon={<AddIcon />}
+                          onClick={() => handleSelectWarehouseDevice(device)}
+                          disabled={loadingWarehouse}
+                        >
+                          Chọn
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setAddFromWarehouseDialogOpen(false);
+              setSelectedWarehouseDevice(null);
+            }}
+          >
+            Đóng
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Select Department Dialog */}
+      <Dialog
+        open={selectDepartmentDialogOpen}
+        onClose={() => {
+          setSelectDepartmentDialogOpen(false);
+          setSelectedDepartment("");
+        }}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>Chọn phòng ban cho thiết bị</DialogTitle>
+        <DialogContent>
+          {selectedWarehouseDevice && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Thiết bị: <strong>{selectedWarehouseDevice.name}</strong> (Mã:{" "}
+                {selectedWarehouseDevice.code})
+              </Typography>
+              <FormControl fullWidth sx={{ mt: 3 }} required>
+                <InputLabel>Phòng ban *</InputLabel>
+                <Select
+                  value={selectedDepartment}
+                  onChange={(e) => setSelectedDepartment(e.target.value)}
+                  label="Phòng ban *"
+                >
+                  <MenuItem value="Phòng Kỹ thuật">Phòng Kỹ thuật</MenuItem>
+                  <MenuItem value="Phòng Văn hóa">Phòng Văn hóa</MenuItem>
+                  <MenuItem value="Phòng Thể thao">Phòng Thể thao</MenuItem>
+                  <MenuItem value="Phòng Truyền thanh">
+                    Phòng Truyền thanh
+                  </MenuItem>
+                  <MenuItem value="Phòng Hành chính">Phòng Hành chính</MenuItem>
+                  <MenuItem value="Phòng Tài chính">Phòng Tài chính</MenuItem>
+                  <MenuItem value="Phòng Nhân sự">Phòng Nhân sự</MenuItem>
+                  <MenuItem value="Khác">Khác</MenuItem>
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setSelectDepartmentDialogOpen(false);
+              setSelectedDepartment("");
+            }}
+            disabled={loadingWarehouse}
+          >
+            Hủy
+          </Button>
+          <Button
+            onClick={handleConfirmAddDeviceWithDepartment}
+            variant="contained"
+            disabled={!selectedDepartment || loadingWarehouse}
+            startIcon={
+              loadingWarehouse ? <CircularProgress size={20} /> : <AddIcon />
+            }
+          >
+            {loadingWarehouse ? "Đang thêm..." : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>

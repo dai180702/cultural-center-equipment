@@ -10,7 +10,7 @@ export default function HomeRedirect() {
 
   useEffect(() => {
     if (currentUser) {
-      router.replace("/dashboard"); // Trang chính trong (app)
+      router.replace("/dashboard"); 
     } else {
       router.replace("/login");
     }
