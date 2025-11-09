@@ -911,7 +911,7 @@ export default function AddDevicePage() {
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/inventory/import")}
+                onClick={() => router.push("/warehouse/stock-entry")}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",

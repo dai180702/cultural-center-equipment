@@ -158,10 +158,10 @@ export const updateDevice = async (
   try {
     const deviceRef = doc(db, "devices", id);
     await updateDoc(deviceRef, {
-      ...deviceData, // Dữ liệu thiết bị được cập nhật
-      updatedAt: new Date(), // Cập nhật thời gian sửa đổi
-      updatedBy: userId || "Không xác định", // UID người cập nhật
-      updatedByName: userName || "Không xác định", // Tên người cập nhật
+      ...deviceData, 
+      updatedAt: new Date(), 
+      updatedBy: userId || "Không xác định", 
+      updatedByName: userName || "Không xác định", 
     });
   } catch (error) {
     console.error("Error updating device: ", error);

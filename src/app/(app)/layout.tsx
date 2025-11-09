@@ -29,7 +29,8 @@ import {
   Warning as WarningIcon,
   CalendarToday as CalendarTodayIcon,
 } from "@mui/icons-material";
-import { getUserByEmail } from "@/services/users";
+import { getUserByEmail, User } from "@/services/users";
+import { getPermissions, UserRole } from "@/utils/permissions";
 
 export default function AppSectionLayout({
   children,
@@ -50,7 +51,10 @@ export default function AppSectionLayout({
   const [usersMenuOpen, setUsersMenuOpen] = useState(true);
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<User | null>(
+    null
+  );
 
   useEffect(() => {
     if (!currentUser) {
@@ -69,7 +73,11 @@ export default function AppSectionLayout({
     if (pathname.startsWith("/devices")) setDevicesMenuOpen(true);
     if (pathname.startsWith("/inventory") || pathname.startsWith("/warehouse"))
       setInventoryMenuOpen(true);
-    if (pathname.startsWith("/maintenance")) setMaintenanceMenuOpen(true);
+    if (
+      pathname.startsWith("/maintenance") ||
+      pathname.startsWith("/devices/maintenance")
+    )
+      setMaintenanceMenuOpen(true);
     if (pathname.startsWith("/reports")) setReportsMenuOpen(true);
     if (pathname.startsWith("/users")) setUsersMenuOpen(true);
     if (pathname.startsWith("/notifications")) setNotificationsMenuOpen(true);
@@ -81,12 +89,18 @@ export default function AppSectionLayout({
       try {
         if (!currentUser?.email) return;
         const profile = await getUserByEmail(currentUser.email);
-        setCurrentUserRole(profile?.role || null);
+        if (profile) {
+          setCurrentUserProfile(profile);
+          setCurrentUserRole((profile.role as UserRole) || null);
+        }
       } catch {
         // ignore
       }
     })();
   }, [currentUser?.email]);
+
+  // Get permissions for current user
+  const permissions = getPermissions(currentUserRole);
 
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const handleLogout = async () => {
@@ -97,7 +111,9 @@ export default function AppSectionLayout({
   const isDevicesActive = pathname?.startsWith("/devices");
   const isInventoryActive =
     pathname?.startsWith("/inventory") || pathname?.startsWith("/warehouse");
-  const isMaintenanceActive = pathname?.startsWith("/maintenance");
+  const isMaintenanceActive =
+    pathname?.startsWith("/maintenance") ||
+    pathname?.startsWith("/devices/maintenance");
   const isReportsActive = pathname?.startsWith("/reports");
   const isUsersActive = pathname?.startsWith("/users");
   const isNotificationsActive = pathname?.startsWith("/notifications");
@@ -169,38 +185,48 @@ export default function AppSectionLayout({
       {/* Menu điều hướng - Có thể cuộn */}
       <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
         <Box sx={{ mb: 2 }}>
-          <Button
-            fullWidth
-            startIcon={<HomeIcon />}
-            onClick={() => router.push("/dashboard")}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isHomeActive ? "rgba(255,255,255,0.2)" : undefined,
-              mb: 1,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Trang chủ
-          </Button>
+          {permissions.canViewDashboard && (
+            <Button
+              fullWidth
+              startIcon={<HomeIcon />}
+              onClick={() => router.push("/dashboard")}
+              sx={{
+                justifyContent: "flex-start",
+                color: "white",
+                bgcolor: isHomeActive ? "rgba(255,255,255,0.2)" : undefined,
+                mb: 1,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                "& .MuiButton-endIcon": { marginLeft: "auto" },
+              }}
+            >
+              Trang chủ
+            </Button>
+          )}
 
-          <Button
-            fullWidth
-            startIcon={<DevicesIcon />}
-            endIcon={devicesMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            onClick={() => setDevicesMenuOpen(!devicesMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isDevicesActive ? "rgba(255,255,255,0.1)" : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Quản lý thiết bị
-          </Button>
-          {devicesMenuOpen && (
+          {permissions.canManageDevices && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<DevicesIcon />}
+                endIcon={
+                  devicesMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
+                onClick={() => setDevicesMenuOpen(!devicesMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isDevicesActive
+                    ? "rgba(255,255,255,0.1)"
+                    : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Quản lý thiết bị
+              </Button>
+            </>
+          )}
+          {devicesMenuOpen && permissions.canManageDevices && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
                 fullWidth
@@ -217,22 +243,6 @@ export default function AppSectionLayout({
                 }}
               >
                 Danh sách thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<BuildIcon />}
-                onClick={() => router.push("/devices/maintenance")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Bảo trì thiết bị
               </Button>
               <Button
                 fullWidth
@@ -285,24 +295,30 @@ export default function AppSectionLayout({
             </Box>
           )}
 
-          <Button
-            fullWidth
-            startIcon={<InventoryIcon />}
-            endIcon={
-              inventoryMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            }
-            onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isInventoryActive ? "rgba(255,255,255,0.1)" : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Kho thiết bị
-          </Button>
-          {inventoryMenuOpen && (
+          {permissions.canManageWarehouse && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<InventoryIcon />}
+                endIcon={
+                  inventoryMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
+                onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isInventoryActive
+                    ? "rgba(255,255,255,0.1)"
+                    : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Kho thiết bị
+              </Button>
+            </>
+          )}
+          {inventoryMenuOpen && permissions.canManageWarehouse && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
                 fullWidth
@@ -340,7 +356,7 @@ export default function AppSectionLayout({
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/inventory/import")}
+                onClick={() => router.push("/warehouse/stock-entry")}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -387,27 +403,50 @@ export default function AppSectionLayout({
             </Box>
           )}
 
-          <Button
-            fullWidth
-            startIcon={<BuildIcon />}
-            endIcon={
-              maintenanceMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            }
-            onClick={() => setMaintenanceMenuOpen(!maintenanceMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isMaintenanceActive
-                ? "rgba(255,255,255,0.1)"
-                : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Lịch bảo trì
-          </Button>
-          {maintenanceMenuOpen && (
+          {permissions.canMaintainDevices && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<BuildIcon />}
+                endIcon={
+                  maintenanceMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
+                onClick={() => setMaintenanceMenuOpen(!maintenanceMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isMaintenanceActive
+                    ? "rgba(255,255,255,0.1)"
+                    : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Bảo trì thiết bị
+              </Button>
+            </>
+          )}
+          {maintenanceMenuOpen && permissions.canMaintainDevices && (
             <Box sx={{ ml: 2, mb: 2 }}>
+              <Button
+                fullWidth
+                size="small"
+                startIcon={<ListIcon />}
+                onClick={() => router.push("/devices/maintenance")}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: pathname?.startsWith("/devices/maintenance")
+                    ? "rgba(255,255,255,0.2)"
+                    : undefined,
+                  opacity: 0.9,
+                  fontSize: "0.875rem",
+                  py: 0.5,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                }}
+              >
+                Danh sách thiết bị cần bảo trì
+              </Button>
               <Button
                 fullWidth
                 size="small"
@@ -475,23 +514,47 @@ export default function AppSectionLayout({
             </Box>
           )}
 
-          <Button
-            fullWidth
-            startIcon={<AssessmentIcon />}
-            endIcon={reportsMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isReportsActive ? "rgba(255,255,255,0.1)" : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Báo cáo
-          </Button>
-          {reportsMenuOpen && (
+          {permissions.canViewReports && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<AssessmentIcon />}
+                endIcon={
+                  reportsMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
+                onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isReportsActive
+                    ? "rgba(255,255,255,0.1)"
+                    : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Báo cáo
+              </Button>
+            </>
+          )}
+          {reportsMenuOpen && permissions.canViewReports && (
             <Box sx={{ ml: 2, mb: 2 }}>
+              <Button
+                fullWidth
+                size="small"
+                startIcon={<AssessmentIcon />}
+                onClick={() => router.push("/reports/summary")}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  opacity: 0.9,
+                  fontSize: "0.875rem",
+                  py: 0.5,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                }}
+              >
+                Báo cáo tổng
+              </Button>
               <Button
                 fullWidth
                 size="small"
@@ -511,7 +574,7 @@ export default function AppSectionLayout({
               <Button
                 fullWidth
                 size="small"
-                startIcon={<AssessmentIcon />}
+                startIcon={<BuildIcon />}
                 onClick={() => router.push("/reports/maintenance")}
                 sx={{
                   justifyContent: "flex-start",
@@ -559,22 +622,28 @@ export default function AppSectionLayout({
             </Box>
           )}
 
-          <Button
-            fullWidth
-            startIcon={<PeopleIcon />}
-            endIcon={usersMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            onClick={() => setUsersMenuOpen(!usersMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isUsersActive ? "rgba(255,255,255,0.1)" : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Quản lý nhân viên
-          </Button>
-          {usersMenuOpen && (
+          {permissions.canManageUsers && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<PeopleIcon />}
+                endIcon={
+                  usersMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
+                }
+                onClick={() => setUsersMenuOpen(!usersMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isUsersActive ? "rgba(255,255,255,0.1)" : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Quản lý nhân viên
+              </Button>
+            </>
+          )}
+          {usersMenuOpen && permissions.canManageUsers && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
                 fullWidth
@@ -608,24 +677,25 @@ export default function AppSectionLayout({
               >
                 Thêm mới
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<SettingsIcon />}
-                onClick={() => router.push("/users/roles")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Phân quyền
-              </Button>
-              {(currentUserRole === "director" ||
-                currentUserRole === "deputy_director") && (
+              {permissions.canManagePermissions && (
+                <Button
+                  fullWidth
+                  size="small"
+                  startIcon={<SettingsIcon />}
+                  onClick={() => router.push("/users/roles")}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "white",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                    py: 0.5,
+                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  }}
+                >
+                  Phân quyền
+                </Button>
+              )}
+              {permissions.canManagePermissions && (
                 <Button
                   fullWidth
                   size="small"
@@ -646,26 +716,34 @@ export default function AppSectionLayout({
             </Box>
           )}
 
-          <Button
-            fullWidth
-            startIcon={<NotificationsIcon />}
-            endIcon={
-              notificationsMenuOpen ? <ExpandLessIcon /> : <ExpandMoreIcon />
-            }
-            onClick={() => setNotificationsMenuOpen(!notificationsMenuOpen)}
-            sx={{
-              justifyContent: "flex-start",
-              color: "white",
-              bgcolor: isNotificationsActive
-                ? "rgba(255,255,255,0.1)"
-                : undefined,
-              "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
-              "& .MuiButton-endIcon": { marginLeft: "auto" },
-            }}
-          >
-            Thông báo
-          </Button>
-          {notificationsMenuOpen && (
+          {permissions.canManageNotifications && (
+            <>
+              <Button
+                fullWidth
+                startIcon={<NotificationsIcon />}
+                endIcon={
+                  notificationsMenuOpen ? (
+                    <ExpandLessIcon />
+                  ) : (
+                    <ExpandMoreIcon />
+                  )
+                }
+                onClick={() => setNotificationsMenuOpen(!notificationsMenuOpen)}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: isNotificationsActive
+                    ? "rgba(255,255,255,0.1)"
+                    : undefined,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "& .MuiButton-endIcon": { marginLeft: "auto" },
+                }}
+              >
+                Thông báo
+              </Button>
+            </>
+          )}
+          {notificationsMenuOpen && permissions.canManageNotifications && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
                 fullWidth
@@ -700,6 +778,57 @@ export default function AppSectionLayout({
                 Cảnh báo
               </Button>
             </Box>
+          )}
+
+          {/* Báo cáo thống kê - cho staff và technician */}
+          {permissions.canViewStatistics && (
+            <Button
+              fullWidth
+              startIcon={<BarChartIcon />}
+              onClick={() => router.push("/statistics")}
+              sx={{
+                justifyContent: "flex-start",
+                color: "white",
+                mb: 1,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
+            >
+              Báo cáo thống kê
+            </Button>
+          )}
+
+          {/* Mượn - trả thiết bị - cho staff */}
+          {permissions.canBorrowReturnDevices && (
+            <Button
+              fullWidth
+              startIcon={<DevicesIcon />}
+              onClick={() => router.push("/borrow-return")}
+              sx={{
+                justifyContent: "flex-start",
+                color: "white",
+                mb: 1,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
+            >
+              Mượn - Trả thiết bị
+            </Button>
+          )}
+
+          {/* Quản lý phòng ban - cho manager và lãnh đạo */}
+          {permissions.canManageDepartments && (
+            <Button
+              fullWidth
+              startIcon={<PeopleIcon />}
+              onClick={() => router.push("/departments")}
+              sx={{
+                justifyContent: "flex-start",
+                color: "white",
+                mb: 1,
+                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+              }}
+            >
+              Quản lý phòng ban
+            </Button>
           )}
         </Box>
       </Box>

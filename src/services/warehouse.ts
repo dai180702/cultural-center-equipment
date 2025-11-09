@@ -166,6 +166,48 @@ export const moveDeviceFromWarehouseToDevices = async (
   }
 };
 
+// Move device from devices (in use) to warehouse (stock entry)
+export const moveDeviceFromDevicesToWarehouse = async (
+  deviceId: string,
+  userId?: string,
+  userName?: string
+): Promise<string> => {
+  try {
+    // Get device from devices collection
+    const { getDeviceById, deleteDevice } = await import("./devices");
+    const device = await getDeviceById(deviceId);
+    
+    if (!device) {
+      throw new Error("Không tìm thấy thiết bị trong quản lý thiết bị");
+    }
+
+    // Prepare device data for warehouse
+    const { id, createdAt, updatedAt, createdBy, createdByName, updatedBy, updatedByName, ...deviceData } = device;
+    
+    // Update location to "Kho" and clear assignedTo
+    const warehouseData: DeviceFormData = {
+      ...deviceData,
+      location: "Kho",
+      assignedTo: undefined, // Clear assignedTo when moving to warehouse
+    } as DeviceFormData;
+
+    // Add to warehouse collection
+    const newWarehouseId = await addDeviceToWarehouse(
+      warehouseData,
+      userId || device.createdBy || "Không xác định",
+      userName || device.createdByName || "Người dùng"
+    );
+
+    // Delete from devices collection
+    await deleteDevice(deviceId);
+
+    return newWarehouseId;
+  } catch (error) {
+    console.error("Error moving device from devices to warehouse: ", error);
+    throw new Error("Không thể chuyển thiết bị từ quản lý về kho. Vui lòng thử lại.");
+  }
+};
+
 // Search warehouse devices
 export const searchWarehouseDevices = async (searchTerm: string): Promise<Device[]> => {
   try {

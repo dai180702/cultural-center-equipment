@@ -582,22 +582,6 @@ export default function DevicesPage() {
               <Button
                 fullWidth
                 size="small"
-                startIcon={<BuildIcon />}
-                onClick={() => router.push("/devices/maintenance")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Bảo trì thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
                 startIcon={<CheckCircleIcon />}
                 onClick={() => router.push("/devices/status")}
                 sx={{
@@ -688,7 +672,7 @@ export default function DevicesPage() {
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/inventory/import")}
+                onClick={() => router.push("/warehouse/stock-entry")}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -751,12 +735,29 @@ export default function DevicesPage() {
               },
             }}
           >
-            Lịch bảo trì
+            Bảo trì thiết bị
           </Button>
 
-          {/* Submenu Lịch bảo trì */}
+          {/* Submenu Bảo trì thiết bị */}
           {maintenanceMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
+              <Button
+                fullWidth
+                size="small"
+                startIcon={<ListIcon />}
+                onClick={() => router.push("/devices/maintenance")}
+                sx={{
+                  justifyContent: "flex-start",
+                  color: "white",
+                  bgcolor: "rgba(255,255,255,0.2)",
+                  opacity: 0.9,
+                  fontSize: "0.875rem",
+                  py: 0.5,
+                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                }}
+              >
+                Danh sách thiết bị bảo trì
+              </Button>
               <Button
                 fullWidth
                 size="small"

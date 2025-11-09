@@ -94,7 +94,6 @@ export default function NewUserPage() {
     confirmPassword: "",
     phone: "",
     department: "",
-    position: "",
     startDate: "",
     status: "active" as const,
     role: "staff" as const,
@@ -111,6 +110,7 @@ export default function NewUserPage() {
   const [actionPwdOpen, setActionPwdOpen] = useState(false);
   const [actionPwd, setActionPwd] = useState("");
   const [actionPwdError, setActionPwdError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Cập nhật sidebar khi thay đổi kích thước màn hình
   useEffect(() => {
@@ -188,7 +188,6 @@ export default function NewUserPage() {
       if (formData.department === "Khác" && !customDepartment.trim()) {
         next.department = "Vui lòng nhập tên phòng ban";
       }
-      if (!formData.position.trim()) next.position = "Bắt buộc";
       if (!formData.startDate) next.startDate = "Bắt buộc";
     }
     setErrors(next);
@@ -201,25 +200,34 @@ export default function NewUserPage() {
   const handleBack = () => setActiveStep((s) => s - 1);
 
   const performCreate = async () => {
+    // Prevent double submission
+    if (isSubmitting) return;
     if (!validateStep(activeStep)) return;
-    const cleanSkills = formData.skills.filter((s) => s.trim() !== "");
-    const { password, confirmPassword, ...rest } = formData as any;
-    const payload = {
-      ...rest,
-      department:
-        rest.department === "Khác" && customDepartment.trim()
-          ? customDepartment.trim()
-          : rest.department,
-      skills: cleanSkills,
-      emergencyContact: formData.emergencyContact.name.trim()
-        ? formData.emergencyContact
-        : undefined,
-      address: formData.address.trim() || undefined,
-      notes: formData.notes.trim() || undefined,
-    } as any;
-    const cleanedPayload = JSON.parse(JSON.stringify(payload));
-    await createUser(cleanedPayload, formData.password);
-    router.push("/users");
+    
+    setIsSubmitting(true);
+    try {
+      const cleanSkills = formData.skills.filter((s) => s.trim() !== "");
+      const { password, confirmPassword, ...rest } = formData as any;
+      const payload = {
+        ...rest,
+        department:
+          rest.department === "Khác" && customDepartment.trim()
+            ? customDepartment.trim()
+            : rest.department,
+        skills: cleanSkills,
+        emergencyContact: formData.emergencyContact.name.trim()
+          ? formData.emergencyContact
+          : undefined,
+        address: formData.address.trim() || undefined,
+        notes: formData.notes.trim() || undefined,
+      } as any;
+      const cleanedPayload = JSON.parse(JSON.stringify(payload));
+      await createUser(cleanedPayload, formData.password);
+      router.push("/users");
+    } catch (error) {
+      setIsSubmitting(false);
+      throw error;
+    }
   };
 
   const handleSubmit = () => {
@@ -229,6 +237,9 @@ export default function NewUserPage() {
   };
 
   const handleConfirmActionPwd = async () => {
+    // Prevent double submission
+    if (isSubmitting) return;
+    
     const { getAppSettings } = await import("@/services/settings");
     const settings = await getAppSettings();
     const expected = settings?.actionPassword || "";
@@ -491,7 +502,7 @@ export default function NewUserPage() {
                 fullWidth
                 size="small"
                 startIcon={<AddIcon />}
-                onClick={() => router.push("/inventory/import")}
+                onClick={() => router.push("/warehouse/stock-entry")}
                 sx={{
                   justifyContent: "flex-start",
                   color: "white",
@@ -1199,16 +1210,6 @@ export default function NewUserPage() {
                     )}
                     <TextField
                       fullWidth
-                      label="Chức vụ *"
-                      value={formData.position}
-                      onChange={(e) =>
-                        handleInputChange("position", e.target.value)
-                      }
-                      error={!!errors.position}
-                      helperText={errors.position}
-                    />
-                    <TextField
-                      fullWidth
                       label="Ngày vào làm *"
                       type="date"
                       value={formData.startDate}
@@ -1380,15 +1381,15 @@ export default function NewUserPage() {
                         variant="contained"
                         onClick={handleSubmit}
                         startIcon={
-                          loading ? (
+                          loading || isSubmitting ? (
                             <CircularProgress size={20} />
                           ) : (
                             <SaveIcon />
                           )
                         }
-                        disabled={loading}
+                        disabled={loading || isSubmitting}
                       >
-                        {loading ? "Đang lưu..." : "Lưu nhân viên"}
+                        {loading || isSubmitting ? "Đang lưu..." : "Lưu nhân viên"}
                       </Button>
                     )}
                   </Box>
@@ -1421,8 +1422,13 @@ export default function NewUserPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
-          <Button variant="contained" onClick={handleConfirmActionPwd}>
-            Xác nhận
+          <Button 
+            variant="contained" 
+            onClick={handleConfirmActionPwd}
+            disabled={isSubmitting || loading}
+            startIcon={isSubmitting || loading ? <CircularProgress size={20} /> : null}
+          >
+            {isSubmitting || loading ? "Đang xử lý..." : "Xác nhận"}
           </Button>
         </DialogActions>
       </Dialog>
