@@ -30,6 +30,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { getDeviceById, deleteDevice, Device } from "@/services/devices";
+import { getActiveBorrowByDevice, BorrowRecord } from "@/services/borrows";
 import {
   ArrowBack as ArrowBackIcon,
   Edit as EditIcon,
@@ -58,6 +59,7 @@ export default function DeviceDetailPage() {
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 
   const [device, setDevice] = useState<Device | null>(null);
+  const [activeBorrow, setActiveBorrow] = useState<BorrowRecord | null>(null);
   const [loading, setLoading] = useState(true);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -106,12 +108,16 @@ export default function DeviceDetailPage() {
   const loadDevice = async () => {
     try {
       setLoading(true);
-      const deviceData = await getDeviceById(deviceId);
+      const [deviceData, borrowData] = await Promise.all([
+        getDeviceById(deviceId),
+        getActiveBorrowByDevice(deviceId),
+      ]);
       if (deviceData) {
         setDevice(deviceData);
       } else {
         setError("Không tìm thấy thiết bị");
       }
+      setActiveBorrow(borrowData);
     } catch (err) {
       console.error("Error loading device:", err);
       setError("Không thể tải thông tin thiết bị");
@@ -741,6 +747,92 @@ export default function DeviceDetailPage() {
                   </Card>
                 </Box>
               </Box>
+
+              {/* Borrow Information */}
+              {activeBorrow && (
+                <Card sx={{ bgcolor: "primary.light", borderLeft: "4px solid", borderColor: "primary.main" }}>
+                  <CardContent sx={{ p: 3 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                      <PersonIcon color="primary" />
+                      <Typography variant="h6" fontWeight="bold">
+                        Thông tin mượn trả
+                      </Typography>
+                    </Box>
+
+                    <List dense>
+                      <ListItem>
+                        <ListItemIcon>
+                          <PersonIcon color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary="Người mượn"
+                          secondary={activeBorrow.borrowerName || activeBorrow.borrowerId || "N/A"}
+                          secondaryTypographyProps={{ fontWeight: "medium" }}
+                        />
+                      </ListItem>
+
+                      {activeBorrow.department && (
+                        <ListItem>
+                          <ListItemIcon>
+                            <BusinessIcon color="primary" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Phòng ban mượn"
+                            secondary={activeBorrow.department}
+                          />
+                        </ListItem>
+                      )}
+
+                      {activeBorrow.purpose && (
+                        <ListItem>
+                          <ListItemIcon>
+                            <DescriptionIcon color="primary" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Mục đích mượn"
+                            secondary={activeBorrow.purpose}
+                          />
+                        </ListItem>
+                      )}
+
+                      <ListItem>
+                        <ListItemIcon>
+                          <CalendarIcon color="primary" />
+                        </ListItemIcon>
+                        <ListItemText
+                          primary="Ngày mượn"
+                          secondary={formatFirestoreDate(activeBorrow.borrowDate)}
+                        />
+                      </ListItem>
+
+                      {activeBorrow.expectedReturnDate && (
+                        <ListItem>
+                          <ListItemIcon>
+                            <CalendarIcon color="warning" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Dự kiến trả"
+                            secondary={formatFirestoreDate(activeBorrow.expectedReturnDate)}
+                          />
+                        </ListItem>
+                      )}
+
+                      {activeBorrow.status === "overdue" && (
+                        <ListItem>
+                          <ListItemIcon>
+                            <WarningIcon color="error" />
+                          </ListItemIcon>
+                          <ListItemText
+                            primary="Trạng thái"
+                            secondary="Quá hạn trả"
+                            secondaryTypographyProps={{ color: "error.main", fontWeight: "bold" }}
+                          />
+                        </ListItem>
+                      )}
+                    </List>
+                  </CardContent>
+                </Card>
+              )}
 
               {/* Additional Details */}
               <Card>

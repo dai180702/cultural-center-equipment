@@ -39,7 +39,10 @@ import {
   ArrowBack as ArrowBackIcon,
   Refresh as RefreshIcon,
   Speed as SpeedIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -232,6 +235,69 @@ export default function PerformanceReportPage() {
     },
   };
 
+  // Xuất Excel
+  const handleExportExcel = () => {
+    try {
+      const allDevices = [...devices, ...warehouseDevices];
+      const deviceUsageData = allDevices.map((device) => {
+        const borrowCount = borrowRecords.filter((b) => b.deviceId === device.id).length;
+        return {
+          "Mã thiết bị": device.code,
+          "Tên thiết bị": device.name,
+          "Danh mục": device.category,
+          "Số lần mượn": borrowCount,
+          "Trạng thái": device.status,
+        };
+      });
+
+      const summaryData = [
+        {
+          "Tổng thiết bị": allDevices.length,
+          "Tổng phiếu mượn": borrowRecords.length,
+          "Đang mượn": borrowRecords.filter((b) => b.status === "borrowed").length,
+          "Đã trả": borrowRecords.filter((b) => b.status === "returned").length,
+        },
+      ];
+
+      exportToExcelMultiSheet(
+        [
+          { name: "Tổng quan", data: summaryData },
+          { name: "Hiệu suất thiết bị", data: deviceUsageData },
+        ],
+        `Bao_cao_hieu_suat_${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting Excel:", err);
+      alert(err.message || "Không thể xuất file Excel");
+    }
+  };
+
+  // Xuất PDF
+  const handleExportPDF = () => {
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN");
+      const allDevices = [...devices, ...warehouseDevices];
+      const summaryRows = [
+        ["Tổng thiết bị", allDevices.length.toString()],
+        ["Tổng phiếu mượn", borrowRecords.length.toString()],
+        ["Đang mượn", borrowRecords.filter((b) => b.status === "borrowed").length.toString()],
+        ["Đã trả", borrowRecords.filter((b) => b.status === "returned").length.toString()],
+      ];
+
+      exportTableToPDF(
+        "BÁO CÁO HIỆU SUẤT",
+        ["Chỉ tiêu", "Giá trị"],
+        summaryRows,
+        `Bao_cao_hieu_suat_${new Date().toISOString().split("T")[0]}`,
+        `Ngày báo cáo: ${dateStr}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting PDF:", err);
+      alert(err.message || "Không thể xuất file PDF");
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -258,6 +324,23 @@ export default function PerformanceReportPage() {
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo hiệu suất
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            startIcon={<ExcelIcon />}
+            onClick={handleExportExcel}
+            variant="outlined"
+            color="success"
+          >
+            Xuất Excel
+          </Button>
+          <Button
+            startIcon={<PdfIcon />}
+            onClick={handleExportPDF}
+            variant="outlined"
+            color="error"
+          >
+            Xuất PDF
+          </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
           Phân tích hiệu suất sử dụng và hoạt động của thiết bị

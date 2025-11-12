@@ -30,6 +30,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Drawer,
+  Divider,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -70,6 +72,8 @@ export default function BorrowReturnPage() {
     null
   );
   const [returning, setReturning] = useState(false);
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedRecordForView, setSelectedRecordForView] = useState<BorrowRecord | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -208,6 +212,29 @@ export default function BorrowReturnPage() {
   const handleReturnClick = (record: BorrowRecord) => {
     setSelectedRecord(record);
     setReturnDialogOpen(true);
+  };
+
+  const handleViewDetails = (record: BorrowRecord) => {
+    setSelectedRecordForView(record);
+    setDetailDrawerOpen(true);
+  };
+
+  const formatFirestoreDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    try {
+      if (timestamp.toDate) {
+        return timestamp.toDate().toLocaleDateString("vi-VN");
+      }
+      if (typeof timestamp === "string") {
+        return new Date(timestamp).toLocaleDateString("vi-VN");
+      }
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString("vi-VN");
+      }
+      return "N/A";
+    } catch {
+      return "N/A";
+    }
   };
 
   const handleConfirmReturn = async () => {
@@ -699,9 +726,7 @@ export default function BorrowReturnPage() {
                                 <Tooltip title="Xem chi tiết">
                                   <IconButton
                                     size="small"
-                                    onClick={() =>
-                                      router.push(`/devices/${record.deviceId}`)
-                                    }
+                                    onClick={() => handleViewDetails(record)}
                                   >
                                     <ViewIcon />
                                   </IconButton>
@@ -818,6 +843,197 @@ export default function BorrowReturnPage() {
           {error}
         </Alert>
       </Snackbar>
+
+      {/* Borrow Record Details Drawer */}
+      <Drawer
+        anchor="right"
+        open={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedRecordForView(null);
+        }}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 500 } } }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            Chi tiết phiếu mượn trả
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+
+          {selectedRecordForView && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {/* Thông tin thiết bị */}
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã thiết bị
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {selectedRecordForView.deviceCode || "N/A"}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Tên thiết bị
+                </Typography>
+                <Typography variant="body1" fontWeight="medium">
+                  {selectedRecordForView.deviceName || "N/A"}
+                </Typography>
+              </Box>
+
+              {/* Thông tin người mượn */}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Người mượn
+                  </Typography>
+                  <Typography variant="body1" fontWeight="medium">
+                    {selectedRecordForView.borrowerName || selectedRecordForView.borrowerId || "N/A"}
+                  </Typography>
+                </Box>
+                {selectedRecordForView.department && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Phòng ban mượn
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecordForView.department}
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+
+              {/* Thông tin mượn trả */}
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày mượn
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatFirestoreDate(selectedRecordForView.borrowDate)}
+                  </Typography>
+                </Box>
+                {selectedRecordForView.expectedReturnDate && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Dự kiến trả
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatFirestoreDate(selectedRecordForView.expectedReturnDate)}
+                    </Typography>
+                  </Box>
+                )}
+                {selectedRecordForView.returnDate && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Ngày trả thực tế
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatFirestoreDate(selectedRecordForView.returnDate)}
+                    </Typography>
+                  </Box>
+                )}
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Trạng thái
+                  </Typography>
+                  <Chip
+                    label={getStatusLabel(selectedRecordForView.status)}
+                    color={getStatusColor(selectedRecordForView.status) as any}
+                    size="small"
+                  />
+                </Box>
+              </Box>
+
+              {/* Mục đích mượn */}
+              {selectedRecordForView.purpose && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Mục đích mượn
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedRecordForView.purpose}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Ghi chú */}
+              {selectedRecordForView.notes && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ghi chú
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedRecordForView.notes}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Thông tin người tạo */}
+              {selectedRecordForView.createdByName && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Người tạo phiếu
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedRecordForView.createdByName}
+                  </Typography>
+                </Box>
+              )}
+              {selectedRecordForView.createdAt && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày tạo phiếu
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatFirestoreDate(selectedRecordForView.createdAt)}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
+            {selectedRecordForView &&
+              (selectedRecordForView.status === "borrowed" ||
+                selectedRecordForView.status === "overdue") && (
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleIcon />}
+                  onClick={() => {
+                    setDetailDrawerOpen(false);
+                    handleReturnClick(selectedRecordForView);
+                  }}
+                  fullWidth
+                >
+                  Xác nhận trả
+                </Button>
+              )}
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setDetailDrawerOpen(false);
+                setSelectedRecordForView(null);
+              }}
+              fullWidth
+            >
+              Đóng
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
     </Box>
   );
 }

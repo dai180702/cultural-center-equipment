@@ -53,6 +53,9 @@ export const getWarehouseDevices = async (): Promise<Device[]> => {
         ...data,
         createdAt: data.createdAt?.toDate?.() || data.createdAt,
         updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+        transferredToWarehouseAt:
+          data.transferredToWarehouseAt?.toDate?.() ||
+          data.transferredToWarehouseAt,
       } as Device);
     });
 
@@ -76,6 +79,9 @@ export const getWarehouseDeviceById = async (id: string): Promise<Device | null>
         ...data,
         createdAt: data.createdAt?.toDate?.() || data.createdAt,
         updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+        transferredToWarehouseAt:
+          data.transferredToWarehouseAt?.toDate?.() ||
+          data.transferredToWarehouseAt,
       } as Device;
     } else {
       return null;
@@ -185,17 +191,25 @@ export const moveDeviceFromDevicesToWarehouse = async (
     const { id, createdAt, updatedAt, createdBy, createdByName, updatedBy, updatedByName, ...deviceData } = device;
     
     // Update location to "Kho" and clear assignedTo
+    const transferTime = new Date();
+    const transferUserId = userId || device.createdBy || "Không xác định";
+    const transferUserName =
+      userName || device.createdByName || "Người dùng";
+
     const warehouseData: DeviceFormData = {
       ...deviceData,
       location: "Kho",
       assignedTo: undefined, // Clear assignedTo when moving to warehouse
+      transferredToWarehouseAt: transferTime.toISOString(),
+      transferredToWarehouseBy: transferUserId,
+      transferredToWarehouseByName: transferUserName,
     } as DeviceFormData;
 
     // Add to warehouse collection
     const newWarehouseId = await addDeviceToWarehouse(
       warehouseData,
-      userId || device.createdBy || "Không xác định",
-      userName || device.createdByName || "Người dùng"
+      transferUserId,
+      transferUserName
     );
 
     // Delete from devices collection

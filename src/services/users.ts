@@ -42,7 +42,6 @@ export interface User {
   updatedAt: string;
 }
 
-// Dữ liệu từ form khi tạo/cập nhật người dùng
 export interface UserFormData {
   employeeId: string;
   fullName: string;

@@ -34,7 +34,10 @@ import {
   CheckCircle as CheckCircleIcon,
   Cancel as CancelIcon,
   Person as PersonIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -221,6 +224,67 @@ export default function UsersReportPage() {
 
   const topBorrowers = getTopBorrowers();
 
+  // Xuất Excel
+  const handleExportExcel = () => {
+    try {
+      const userData = users.map((user) => ({
+        "Mã NV": user.employeeId,
+        "Họ tên": user.fullName,
+        "Email": user.email,
+        "Phòng ban": user.department,
+        "Chức vụ": user.position,
+        "Vai trò": roleLabels[user.role] || user.role,
+        "Trạng thái": statusLabels[user.status] || user.status,
+        "Ngày vào làm": user.startDate,
+      }));
+
+      const summaryData = [
+        {
+          "Tổng nhân viên": users.length,
+          "Hoạt động": users.filter((u) => u.status === "active").length,
+          "Không hoạt động": users.filter((u) => u.status === "inactive").length,
+          "Tạm ngưng": users.filter((u) => u.status === "suspended").length,
+        },
+      ];
+
+      exportToExcelMultiSheet(
+        [
+          { name: "Tổng quan", data: summaryData },
+          { name: "Danh sách nhân viên", data: userData },
+        ],
+        `Bao_cao_nguoi_dung_${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting Excel:", err);
+      alert(err.message || "Không thể xuất file Excel");
+    }
+  };
+
+  // Xuất PDF
+  const handleExportPDF = () => {
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN");
+      const summaryRows = [
+        ["Tổng nhân viên", users.length.toString()],
+        ["Hoạt động", users.filter((u) => u.status === "active").length.toString()],
+        ["Không hoạt động", users.filter((u) => u.status === "inactive").length.toString()],
+        ["Tạm ngưng", users.filter((u) => u.status === "suspended").length.toString()],
+      ];
+
+      exportTableToPDF(
+        "BÁO CÁO NGƯỜI DÙNG",
+        ["Chỉ tiêu", "Giá trị"],
+        summaryRows,
+        `Bao_cao_nguoi_dung_${new Date().toISOString().split("T")[0]}`,
+        `Ngày báo cáo: ${dateStr}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting PDF:", err);
+      alert(err.message || "Không thể xuất file PDF");
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -247,6 +311,23 @@ export default function UsersReportPage() {
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo người dùng
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            startIcon={<ExcelIcon />}
+            onClick={handleExportExcel}
+            variant="outlined"
+            color="success"
+          >
+            Xuất Excel
+          </Button>
+          <Button
+            startIcon={<PdfIcon />}
+            onClick={handleExportPDF}
+            variant="outlined"
+            color="error"
+          >
+            Xuất PDF
+          </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
           Thống kê và phân tích về người dùng và hoạt động mượn trả

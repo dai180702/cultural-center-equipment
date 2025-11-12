@@ -44,6 +44,9 @@ export interface Device {
   createdByName?: string; // Tên người tạo thiết bị
   updatedBy?: string; // UID người cập nhật cuối
   updatedByName?: string; // Tên người cập nhật cuối
+  transferredToWarehouseAt?: Date | string; // Ngày chuyển vào kho
+  transferredToWarehouseBy?: string; // UID người chuyển vào kho
+  transferredToWarehouseByName?: string; // Tên người chuyển vào kho
 }
 
 // Interface định nghĩa cấu trúc dữ liệu form để thêm/sửa thiết bị
@@ -68,6 +71,9 @@ export interface DeviceFormData {
   lastMaintenance?: string; // Lần bảo trì cuối
   nextMaintenance?: string; // Lần bảo trì tiếp theo
   notes?: string; // Ghi chú
+  transferredToWarehouseAt?: string; // Ngày chuyển vào kho (ISO string)
+  transferredToWarehouseBy?: string; // UID người chuyển vào kho
+  transferredToWarehouseByName?: string; // Tên người chuyển vào kho
 }
 
 // Add new device

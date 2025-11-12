@@ -3,7 +3,6 @@ import { getAuth, connectAuthEmulator } from "firebase/auth";
 import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: "AIzaSyBX2sfeOq4-exaM8XxoQ7llrLA_jpu7Eo0",
   authDomain: "cultural-center-equipment.firebaseapp.com",
@@ -14,15 +13,12 @@ const firebaseConfig = {
   measurementId: "G-DW503JRBP3",
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Firebase services
 export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Trả về Auth instance thứ hai để tạo người dùng mà không ảnh hưởng session hiện tại
 export const getSecondaryAuth = () => {
   const secondaryName = "secondary";
   const secondaryApp = getApps().find((a) => a.name === secondaryName)
@@ -31,7 +27,7 @@ export const getSecondaryAuth = () => {
   return getAuth(secondaryApp);
 };
 
-// Connect to emulators in development
+
 if (process.env.NODE_ENV === "development") {
   // Uncomment these lines if you want to use Firebase emulators
   // connectAuthEmulator(auth, 'http://localhost:9099');

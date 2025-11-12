@@ -32,7 +32,10 @@ import {
   Refresh as RefreshIcon,
   CheckCircle as CheckCircleIcon,
   Warning as WarningIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -209,6 +212,23 @@ export default function InventoryReportPage() {
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo tồn kho
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            startIcon={<ExcelIcon />}
+            onClick={handleExportExcel}
+            variant="outlined"
+            color="success"
+          >
+            Xuất Excel
+          </Button>
+          <Button
+            startIcon={<PdfIcon />}
+            onClick={handleExportPDF}
+            variant="outlined"
+            color="error"
+          >
+            Xuất PDF
+          </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
           Thống kê và phân tích tình trạng tồn kho thiết bị

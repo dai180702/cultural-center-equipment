@@ -42,19 +42,19 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import {
   getDevices,
-  deleteDevice,
   Device,
   searchDevices,
 } from "@/services/devices";
 import {
   getWarehouseDevices,
   moveDeviceFromWarehouseToDevices,
+  moveDeviceFromDevicesToWarehouse,
 } from "@/services/warehouse";
+import { getActiveBorrowByDevice, BorrowRecord } from "@/services/borrows";
 import {
   Add as AddIcon,
   Search as SearchIcon,
   Edit as EditIcon,
-  Delete as DeleteIcon,
   Visibility as ViewIcon,
   FilterList as FilterIcon,
   Refresh as RefreshIcon,
@@ -122,9 +122,9 @@ export default function DevicesPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("Tất cả");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deviceToDelete, setDeviceToDelete] = useState<Device | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const [transferDialogOpen, setTransferDialogOpen] = useState(false);
+  const [deviceToTransfer, setDeviceToTransfer] = useState<Device | null>(null);
+  const [transferring, setTransferring] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -140,6 +140,9 @@ export default function DevicesPage() {
   const [selectDepartmentDialogOpen, setSelectDepartmentDialogOpen] =
     useState(false);
   const [selectedDepartment, setSelectedDepartment] = useState("");
+  const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
+  const [selectedDevice, setSelectedDevice] = useState<Device | null>(null);
+  const [activeBorrow, setActiveBorrow] = useState<BorrowRecord | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -252,6 +255,52 @@ export default function DevicesPage() {
     setCategoryFilter("Tất cả");
     setSearchTerm("");
     setDevices(allDevices); // Reset to original list
+  };
+
+  const handleViewDetails = async (device: Device) => {
+    setSelectedDevice(device);
+    setDetailDrawerOpen(true);
+    // Load thông tin mượn trả nếu có
+    try {
+      const borrowData = await getActiveBorrowByDevice(device.id!);
+      setActiveBorrow(borrowData);
+    } catch (err) {
+      console.error("Error loading borrow info:", err);
+      setActiveBorrow(null);
+    }
+  };
+
+  const formatDate = (dateString: string | Date | undefined) => {
+    if (!dateString) return "N/A";
+    try {
+      if (dateString instanceof Date) {
+        return dateString.toLocaleDateString("vi-VN");
+      }
+      if (typeof dateString === "string") {
+        return new Date(dateString).toLocaleDateString("vi-VN");
+      }
+      return "N/A";
+    } catch {
+      return "N/A";
+    }
+  };
+
+  const formatFirestoreDate = (timestamp: any) => {
+    if (!timestamp) return "N/A";
+    try {
+      if (timestamp.toDate) {
+        return timestamp.toDate().toLocaleDateString("vi-VN");
+      }
+      if (typeof timestamp === "string") {
+        return new Date(timestamp).toLocaleDateString("vi-VN");
+      }
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString("vi-VN");
+      }
+      return "N/A";
+    } catch {
+      return "N/A";
+    }
   };
 
   // Load devices from warehouse collection
@@ -367,36 +416,43 @@ export default function DevicesPage() {
     }
   };
 
-  const handleDeleteClick = (device: Device) => {
-    setDeviceToDelete(device);
-    setDeleteDialogOpen(true);
+  const handleTransferToWarehouseClick = (device: Device) => {
+    setDeviceToTransfer(device);
+    setTransferDialogOpen(true);
   };
 
-  const handleDeleteConfirm = async () => {
-    if (!deviceToDelete?.id) return;
+  const handleTransferConfirm = async () => {
+    if (!deviceToTransfer?.id) return;
 
     try {
-      setDeleting(true);
-      await deleteDevice(deviceToDelete.id);
-      setSuccess("Thiết bị đã được xóa thành công");
-      const updatedDevices = devices.filter((d) => d.id !== deviceToDelete.id);
+      setTransferring(true);
+      await moveDeviceFromDevicesToWarehouse(
+        deviceToTransfer.id,
+        currentUser?.uid,
+        currentUser?.displayName || currentUser?.email || "Người dùng"
+      );
+      setSuccess(`Thiết bị "${deviceToTransfer.name}" đã được chuyển vào kho`);
+      const updatedDevices = devices.filter(
+        (d) => d.id !== deviceToTransfer.id
+      );
       const updatedAllDevices = allDevices.filter(
-        (d) => d.id !== deviceToDelete.id
+        (d) => d.id !== deviceToTransfer.id
       );
       setDevices(updatedDevices);
       setAllDevices(updatedAllDevices);
-      setDeleteDialogOpen(false);
-      setDeviceToDelete(null);
+      setTransferDialogOpen(false);
+      setDeviceToTransfer(null);
     } catch (err) {
-      setError("Không thể xóa thiết bị");
+      console.error("Error moving device to warehouse:", err);
+      setError("Không thể chuyển thiết bị vào kho");
     } finally {
-      setDeleting(false);
+      setTransferring(false);
     }
   };
 
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setDeviceToDelete(null);
+  const handleTransferCancel = () => {
+    setTransferDialogOpen(false);
+    setDeviceToTransfer(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -1479,32 +1535,20 @@ export default function DevicesPage() {
                                   <Tooltip title="Xem chi tiết">
                                     <IconButton
                                       size="small"
-                                      onClick={() =>
-                                        router.push(`/devices/${device.id}`)
-                                      }
+                                      onClick={() => handleViewDetails(device)}
                                     >
                                       <ViewIcon />
                                     </IconButton>
                                   </Tooltip>
-                                  <Tooltip title="Chỉnh sửa">
+                                  <Tooltip title="Chuyển vào kho">
                                     <IconButton
                                       size="small"
+                                      color="secondary"
                                       onClick={() =>
-                                        router.push(
-                                          `/devices/${device.id}/edit`
-                                        )
+                                        handleTransferToWarehouseClick(device)
                                       }
                                     >
-                                      <EditIcon />
-                                    </IconButton>
-                                  </Tooltip>
-                                  <Tooltip title="Xóa">
-                                    <IconButton
-                                      size="small"
-                                      color="error"
-                                      onClick={() => handleDeleteClick(device)}
-                                    >
-                                      <DeleteIcon />
+                                      <InventoryIcon />
                                     </IconButton>
                                   </Tooltip>
                                 </Box>
@@ -1548,29 +1592,30 @@ export default function DevicesPage() {
         </Box>
       </Box>
 
-      {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={handleDeleteCancel}>
-        <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
+      {/* Transfer to Warehouse Dialog */}
+      <Dialog open={transferDialogOpen} onClose={handleTransferCancel}>
+        <DialogTitle>Xác nhận chuyển vào kho</DialogTitle>
         <DialogContent>
           <Typography>
-            Bạn có chắc chắn muốn xóa thiết bị "{deviceToDelete?.name}" (Mã:{" "}
-            {deviceToDelete?.code})?
+            Bạn có chắc chắn muốn chuyển thiết bị "
+            {deviceToTransfer?.name}" (Mã: {deviceToTransfer?.code}) vào kho?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-            Hành động này không thể hoàn tác.
+            Thiết bị sẽ không còn trong danh sách đang sử dụng và sẽ xuất hiện
+            lại trong kho.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={handleDeleteCancel} disabled={deleting}>
+          <Button onClick={handleTransferCancel} disabled={transferring}>
             Hủy
           </Button>
           <Button
-            onClick={handleDeleteConfirm}
-            color="error"
-            disabled={deleting}
-            startIcon={deleting ? <CircularProgress size={20} /> : null}
+            onClick={handleTransferConfirm}
+            color="secondary"
+            disabled={transferring}
+            startIcon={transferring ? <CircularProgress size={20} /> : null}
           >
-            {deleting ? "Đang xóa..." : "Xóa"}
+            {transferring ? "Đang chuyển..." : "Chuyển vào kho"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -1766,6 +1811,240 @@ export default function DevicesPage() {
           {error}
         </Alert>
       </Snackbar>
+
+      {/* Device Details Drawer */}
+      <Drawer
+        anchor="right"
+        open={detailDrawerOpen}
+        onClose={() => {
+          setDetailDrawerOpen(false);
+          setSelectedDevice(null);
+          setActiveBorrow(null);
+        }}
+        PaperProps={{ sx: { width: { xs: "100%", sm: 500 } } }}
+      >
+        <Box sx={{ p: 3 }}>
+          <Typography variant="h5" fontWeight="bold" gutterBottom>
+            Chi tiết thiết bị
+          </Typography>
+          <Divider sx={{ my: 2 }} />
+
+          {selectedDevice && (
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Mã thiết bị
+                </Typography>
+                <Typography variant="body1">{selectedDevice.code}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  Tên thiết bị
+                </Typography>
+                <Typography variant="body1">{selectedDevice.name}</Typography>
+              </Box>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                  gap: 2,
+                }}
+              >
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Danh mục
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.category}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Thương hiệu
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.brand}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Model
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.model}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Số serial
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.serialNumber}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Trạng thái
+                  </Typography>
+                  <Chip
+                    label={getStatusLabel(selectedDevice.status)}
+                    color={getStatusColor(selectedDevice.status) as any}
+                    size="small"
+                  />
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Vị trí
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.location}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Phòng ban
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.department}
+                  </Typography>
+                </Box>
+                {selectedDevice.assignedTo && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Người được giao
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedDevice.assignedTo}
+                    </Typography>
+                  </Box>
+                )}
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Ngày mua
+                  </Typography>
+                  <Typography variant="body1">
+                    {formatDate(selectedDevice.purchaseDate)}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Giá mua
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.purchasePrice
+                      ? new Intl.NumberFormat("vi-VN", {
+                          style: "currency",
+                          currency: "VND",
+                        }).format(selectedDevice.purchasePrice)
+                      : "N/A"}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {/* Thông tin mượn trả */}
+              {activeBorrow && (
+                <Box sx={{ mt: 2, p: 2, bgcolor: "primary.light", borderRadius: 1 }}>
+                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                    Thông tin mượn trả
+                  </Typography>
+                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Người mượn
+                      </Typography>
+                      <Typography variant="body1" fontWeight="medium">
+                        {activeBorrow.borrowerName || activeBorrow.borrowerId || "N/A"}
+                      </Typography>
+                    </Box>
+                    {activeBorrow.department && (
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Phòng ban mượn
+                        </Typography>
+                        <Typography variant="body1">
+                          {activeBorrow.department}
+                        </Typography>
+                      </Box>
+                    )}
+                    {activeBorrow.purpose && (
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Mục đích mượn
+                        </Typography>
+                        <Typography variant="body1">
+                          {activeBorrow.purpose}
+                        </Typography>
+                      </Box>
+                    )}
+                    <Box>
+                      <Typography variant="subtitle2" color="text.secondary">
+                        Ngày mượn
+                      </Typography>
+                      <Typography variant="body1">
+                        {formatFirestoreDate(activeBorrow.borrowDate)}
+                      </Typography>
+                    </Box>
+                    {activeBorrow.expectedReturnDate && (
+                      <Box>
+                        <Typography variant="subtitle2" color="text.secondary">
+                          Dự kiến trả
+                        </Typography>
+                        <Typography variant="body1">
+                          {formatFirestoreDate(activeBorrow.expectedReturnDate)}
+                        </Typography>
+                      </Box>
+                    )}
+                    {activeBorrow.status === "overdue" && (
+                      <Box>
+                        <Chip
+                          label="Quá hạn trả"
+                          color="error"
+                          size="small"
+                        />
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              )}
+
+              {selectedDevice.description && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Mô tả
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.description}
+                  </Typography>
+                </Box>
+              )}
+              {selectedDevice.specifications && (
+                <Box>
+                  <Typography variant="subtitle2" color="text.secondary">
+                    Thông số kỹ thuật
+                  </Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.specifications}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+          )}
+
+          <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
+            <Button
+              variant="outlined"
+              onClick={() => {
+                setDetailDrawerOpen(false);
+                setSelectedDevice(null);
+                setActiveBorrow(null);
+              }}
+              fullWidth
+            >
+              Đóng
+            </Button>
+          </Box>
+        </Box>
+      </Drawer>
     </Box>
   );
 }

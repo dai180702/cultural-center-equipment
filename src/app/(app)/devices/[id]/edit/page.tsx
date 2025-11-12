@@ -66,6 +66,32 @@ export default function EditDevicePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 
+  useEffect(() => {
+    if (!currentUser) {
+      router.replace("/login");
+      return;
+    }
+    router.replace("/devices");
+  }, [currentUser, router]);
+
+  return (
+    <Box
+      sx={{
+        minHeight: "60vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 2,
+      }}
+    >
+      <CircularProgress />
+      <Typography variant="body1" color="text.secondary" align="center">
+        Chỉnh sửa thiết bị chỉ thực hiện ở Kho. Đang chuyển về danh sách thiết bị...
+      </Typography>
+    </Box>
+  );
+
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);

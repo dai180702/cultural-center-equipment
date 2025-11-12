@@ -39,6 +39,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { getDevices, Device, searchDevices } from "@/services/devices";
 import { moveDeviceFromDevicesToWarehouse } from "@/services/warehouse";
+import { getUserByEmail } from "@/services/users";
 import {
   Search as SearchIcon,
   Refresh as RefreshIcon,
@@ -202,6 +203,24 @@ export default function StockEntryPage() {
     try {
       setMoving(true);
       setConfirmDialogOpen(false);
+      
+      // Lấy thông tin đầy đủ của người dùng từ bảng users
+      let userName: string | undefined = undefined;
+      if (currentUser.email) {
+        try {
+          const userProfile = await getUserByEmail(currentUser.email);
+          if (userProfile?.fullName) {
+            userName = userProfile.fullName;
+          } else {
+            userName = currentUser.displayName || currentUser.email || undefined;
+          }
+        } catch (err) {
+          // Nếu không lấy được từ bảng users, dùng thông tin từ Firebase Auth
+          console.warn("Không thể lấy thông tin user từ bảng users:", err);
+          userName = currentUser.displayName || currentUser.email || undefined;
+        }
+      }
+
       const deviceIds = Array.from(selectedDevices);
       let successCount = 0;
       let errorCount = 0;
@@ -211,7 +230,7 @@ export default function StockEntryPage() {
           await moveDeviceFromDevicesToWarehouse(
             deviceId,
             currentUser.uid,
-            currentUser.email || currentUser.displayName || undefined
+            userName
           );
           successCount++;
         } catch (err) {

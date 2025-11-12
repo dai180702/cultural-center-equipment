@@ -31,6 +31,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { DeviceFormData } from "@/services/devices";
 import { addDeviceToWarehouse } from "@/services/warehouse";
+import { getUserByEmail } from "@/services/users";
 import {
   ArrowBack as ArrowBackIcon,
   Save as SaveIcon,
@@ -288,10 +289,29 @@ export default function AddWarehouseDevicePage() {
         throw new Error("Không tìm thấy thông tin người dùng");
       }
 
+      // Lấy thông tin đầy đủ của người dùng từ bảng users
+      let userName = "Người dùng";
+      if (currentUser.email) {
+        try {
+          const userProfile = await getUserByEmail(currentUser.email);
+          if (userProfile?.fullName) {
+            userName = userProfile.fullName;
+          } else {
+            userName =
+              currentUser.displayName || currentUser.email || "Người dùng";
+          }
+        } catch (err) {
+          // Nếu không lấy được từ bảng users, dùng thông tin từ Firebase Auth
+          console.warn("Không thể lấy thông tin user từ bảng users:", err);
+          userName =
+            currentUser.displayName || currentUser.email || "Người dùng";
+        }
+      }
+
       const deviceId = await addDeviceToWarehouse(
         formData,
         currentUser.uid,
-        currentUser.displayName || currentUser.email || "Người dùng"
+        userName
       );
 
       setSuccess(true);
@@ -809,4 +829,3 @@ export default function AddWarehouseDevicePage() {
     </Box>
   );
 }
-

@@ -34,7 +34,10 @@ import {
   Warning as WarningIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -160,6 +163,69 @@ export default function MaintenanceReportPage() {
     },
   };
 
+  // Xuất Excel
+  const handleExportExcel = () => {
+    try {
+      const maintenanceDevices = allDevices.filter(
+        (d) => d.status === "maintenance" || d.status === "broken"
+      );
+      const excelData = maintenanceDevices.map((device) => ({
+        "Mã thiết bị": device.code,
+        "Tên thiết bị": device.name,
+        "Danh mục": device.category,
+        "Trạng thái": device.status,
+        "Lần bảo trì cuối": device.lastMaintenance || "Chưa có",
+        "Lần bảo trì tiếp theo": device.nextMaintenance || "Chưa có",
+        "Lịch bảo trì": device.maintenanceSchedule || "Chưa có",
+      }));
+
+      const summaryData = [
+        {
+          "Đang hoạt động": maintenanceStats.active,
+          "Cần bảo trì": maintenanceStats.maintenance,
+          "Đã hỏng": maintenanceStats.broken,
+          "Thanh lý": maintenanceStats.retired,
+        },
+      ];
+
+      exportToExcelMultiSheet(
+        [
+          { name: "Tổng quan", data: summaryData },
+          { name: "Thiết bị cần bảo trì", data: excelData },
+        ],
+        `Bao_cao_bao_tri_${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting Excel:", err);
+      alert(err.message || "Không thể xuất file Excel");
+    }
+  };
+
+  // Xuất PDF
+  const handleExportPDF = () => {
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN");
+      const summaryRows = [
+        ["Đang hoạt động", maintenanceStats.active.toString()],
+        ["Cần bảo trì", maintenanceStats.maintenance.toString()],
+        ["Đã hỏng", maintenanceStats.broken.toString()],
+        ["Thanh lý", maintenanceStats.retired.toString()],
+      ];
+
+      exportTableToPDF(
+        "BÁO CÁO BẢO TRÌ",
+        ["Trạng thái", "Số lượng"],
+        summaryRows,
+        `Bao_cao_bao_tri_${new Date().toISOString().split("T")[0]}`,
+        `Ngày báo cáo: ${dateStr}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting PDF:", err);
+      alert(err.message || "Không thể xuất file PDF");
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -186,6 +252,23 @@ export default function MaintenanceReportPage() {
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo bảo trì
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            startIcon={<ExcelIcon />}
+            onClick={handleExportExcel}
+            variant="outlined"
+            color="success"
+          >
+            Xuất Excel
+          </Button>
+          <Button
+            startIcon={<PdfIcon />}
+            onClick={handleExportPDF}
+            variant="outlined"
+            color="error"
+          >
+            Xuất PDF
+          </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
           Thống kê và phân tích tình trạng bảo trì thiết bị

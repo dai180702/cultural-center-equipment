@@ -695,7 +695,7 @@ export default function AppSectionLayout({
                   Phân quyền
                 </Button>
               )}
-              {permissions.canManagePermissions && (
+              {permissions.canManageActionPassword && (
                 <Button
                   fullWidth
                   size="small"
@@ -778,23 +778,6 @@ export default function AppSectionLayout({
                 Cảnh báo
               </Button>
             </Box>
-          )}
-
-          {/* Báo cáo thống kê - cho staff và technician */}
-          {permissions.canViewStatistics && (
-            <Button
-              fullWidth
-              startIcon={<BarChartIcon />}
-              onClick={() => router.push("/statistics")}
-              sx={{
-                justifyContent: "flex-start",
-                color: "white",
-                mb: 1,
-                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-              }}
-            >
-              Báo cáo thống kê
-            </Button>
           )}
 
           {/* Mượn - trả thiết bị - cho staff */}

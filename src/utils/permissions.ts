@@ -17,6 +17,7 @@ interface PermissionConfig {
   canManageDepartments: boolean;
   canManageNotifications: boolean;
   canManagePermissions: boolean;
+  canManageActionPassword: boolean;
   canViewReports: boolean;
   canBorrowReturnDevices: boolean;
   canViewStatistics: boolean;
@@ -35,14 +36,14 @@ const getPermissionsByRole = (
       canManageDepartments: false,
       canManageNotifications: false,
       canManagePermissions: false,
+      canManageActionPassword: false,
       canViewReports: false,
       canBorrowReturnDevices: false,
       canViewStatistics: false,
     };
   }
 
-  // Lãnh đạo và Trưởng phòng: có tất cả quyền
-  if (role === "director" || role === "deputy_director" || role === "manager") {
+  if (role === "director" || role === "deputy_director") {
     return {
       canViewDashboard: true,
       canManageDevices: true,
@@ -52,30 +53,47 @@ const getPermissionsByRole = (
       canManageDepartments: true,
       canManageNotifications: true,
       canManagePermissions: true,
+      canManageActionPassword: true,
       canViewReports: true,
       canBorrowReturnDevices: true,
       canViewStatistics: true,
     };
   }
 
-  // Nhân viên (staff): có quản lý thiết bị, báo cáo thống kê và mượn-trả thiết bị, nhưng không có quản lý nhân viên
-  if (role === "staff") {
+  if (role === "manager") {
     return {
       canViewDashboard: true,
-      canManageDevices: true, // Nhân viên có thể xem quản lý thiết bị
-      canManageWarehouse: false,
-      canMaintainDevices: false,
-      canManageUsers: false, // Chỉ không xem được quản lý nhân viên
-      canManageDepartments: false,
-      canManageNotifications: false,
-      canManagePermissions: false,
-      canViewReports: false,
+      canManageDevices: true,
+      canManageWarehouse: true,
+      canMaintainDevices: true,
+      canManageUsers: true,
+      canManageDepartments: true,
+      canManageNotifications: true,
+      canManagePermissions: true,
+      canManageActionPassword: false,
+      canViewReports: true,
       canBorrowReturnDevices: true,
       canViewStatistics: true,
     };
   }
 
-  // Kỹ thuật viên (technician): có báo cáo thống kê, bảo trì, kho, quản lý thiết bị
+  if (role === "staff") {
+    return {
+      canViewDashboard: true,
+      canManageDevices: true,
+      canManageWarehouse: false,
+      canMaintainDevices: false,
+      canManageUsers: false,
+      canManageDepartments: false,
+      canManageNotifications: false,
+      canManagePermissions: false,
+      canManageActionPassword: false,
+      canViewReports: true,
+      canBorrowReturnDevices: true,
+      canViewStatistics: true,
+    };
+  }
+
   if (role === "technician") {
     return {
       canViewDashboard: true,
@@ -86,13 +104,13 @@ const getPermissionsByRole = (
       canManageDepartments: false,
       canManageNotifications: false,
       canManagePermissions: false,
-      canViewReports: false,
+      canManageActionPassword: false,
+      canViewReports: true,
       canBorrowReturnDevices: false,
       canViewStatistics: true,
     };
   }
 
-  // Default: không có quyền
   return {
     canViewDashboard: false,
     canManageDevices: false,
@@ -102,6 +120,7 @@ const getPermissionsByRole = (
     canManageDepartments: false,
     canManageNotifications: false,
     canManagePermissions: false,
+    canManageActionPassword: false,
     canViewReports: false,
     canBorrowReturnDevices: false,
     canViewStatistics: false,

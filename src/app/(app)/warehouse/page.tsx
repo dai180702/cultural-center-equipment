@@ -231,9 +231,7 @@ export default function WarehouseManagementPage() {
       setDeleting(true);
       await deleteWarehouseDevice(deviceToDelete.id);
       setSuccess("Thiết bị đã được xóa khỏi kho thành công");
-      const updatedDevices = devices.filter(
-        (d) => d.id !== deviceToDelete.id
-      );
+      const updatedDevices = devices.filter((d) => d.id !== deviceToDelete.id);
       const updatedAllDevices = allDevices.filter(
         (d) => d.id !== deviceToDelete.id
       );
@@ -347,7 +345,10 @@ export default function WarehouseManagementPage() {
     const link = document.createElement("a");
     const url = URL.createObjectURL(blob);
     link.setAttribute("href", url);
-    link.setAttribute("download", `danh_sach_kho_thiet_bi_${new Date().getTime()}.csv`);
+    link.setAttribute(
+      "download",
+      `danh_sach_kho_thiet_bi_${new Date().getTime()}.csv`
+    );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
     link.click();
@@ -462,7 +463,8 @@ export default function WarehouseManagementPage() {
           Quản lý kho thiết bị
         </Typography>
         <Typography variant="body1" color="text.secondary">
-          Danh sách và quản lý tất cả thiết bị trong trung tâm (trong kho và đang sử dụng)
+          Danh sách và quản lý tất cả thiết bị trong trung tâm (trong kho và
+          đang sử dụng)
         </Typography>
       </Box>
 
@@ -712,6 +714,7 @@ export default function WarehouseManagementPage() {
                       <TableCell>Trạng thái</TableCell>
                       <TableCell>Vị trí</TableCell>
                       <TableCell>Phòng ban</TableCell>
+                      <TableCell>Người thêm</TableCell>
                       <TableCell align="center">Thao tác</TableCell>
                     </TableRow>
                   </TableHead>
@@ -732,6 +735,13 @@ export default function WarehouseManagementPage() {
                         </TableCell>
                         <TableCell>{device.location}</TableCell>
                         <TableCell>{device.department}</TableCell>
+                        <TableCell>
+                          {device.createdByName || (
+                            <Typography variant="body2" color="text.secondary">
+                              N/A
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell align="center">
                           <Stack
                             direction="row"
@@ -790,7 +800,10 @@ export default function WarehouseManagementPage() {
       </Card>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
         <DialogContent>
           <Typography>
@@ -858,13 +871,17 @@ export default function WarehouseManagementPage() {
                   <Typography variant="subtitle2" color="text.secondary">
                     Thương hiệu
                   </Typography>
-                  <Typography variant="body1">{selectedDevice.brand}</Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.brand}
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
                     Model
                   </Typography>
-                  <Typography variant="body1">{selectedDevice.model}</Typography>
+                  <Typography variant="body1">
+                    {selectedDevice.model}
+                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">
@@ -923,6 +940,26 @@ export default function WarehouseManagementPage() {
                       : "N/A"}
                   </Typography>
                 </Box>
+                {selectedDevice.createdByName && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Người thêm vào kho
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedDevice.createdByName}
+                    </Typography>
+                  </Box>
+                )}
+                {selectedDevice.createdAt && (
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      Ngày thêm vào kho
+                    </Typography>
+                    <Typography variant="body1">
+                      {formatDate(selectedDevice.createdAt)}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
               {selectedDevice.description && (
                 <Box>
@@ -1135,4 +1172,3 @@ export default function WarehouseManagementPage() {
     </Container>
   );
 }
-

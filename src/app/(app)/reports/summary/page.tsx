@@ -42,7 +42,10 @@ import {
   Assignment as AssignmentIcon,
   ArrowBack as ArrowBackIcon,
   Refresh as RefreshIcon,
+  PictureAsPdf as PdfIcon,
+  TableChart as ExcelIcon,
 } from "@mui/icons-material";
+import { exportToExcel, exportTableToPDF, exportHTMLToPDF } from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -268,6 +271,87 @@ export default function SummaryReportPage() {
     },
   };
 
+  // Xuất Excel
+  const handleExportExcel = () => {
+    if (!stats) return;
+    try {
+      const excelData = [
+        {
+          "Tổng thiết bị": stats.totalDevices,
+          "Thiết bị trong kho": stats.warehouseDevices,
+          "Thiết bị đang sử dụng": stats.inUseDevices,
+          "Đang hoạt động": stats.byStatus.active || 0,
+          "Cần bảo trì": stats.byStatus.maintenance || 0,
+          "Đã hỏng": stats.byStatus.broken || 0,
+          "Thanh lý": stats.byStatus.retired || 0,
+          "Tổng phiếu mượn": stats.borrowStats.total,
+          "Đang mượn": stats.borrowStats.borrowed,
+          "Đã trả": stats.borrowStats.returned,
+          "Quá hạn": stats.borrowStats.overdue,
+        },
+      ];
+
+      // Thêm sheet theo danh mục
+      const categoryData = Object.entries(stats.byCategory).map(([key, value]) => ({
+        "Danh mục": key,
+        "Số lượng": value,
+      }));
+
+      // Thêm sheet theo phòng ban
+      const departmentData = Object.entries(stats.byDepartment).map(([key, value]) => ({
+        "Phòng ban": key,
+        "Số lượng": value,
+      }));
+
+      exportToExcelMultiSheet(
+        [
+          { name: "Tổng quan", data: excelData },
+          { name: "Theo danh mục", data: categoryData },
+          { name: "Theo phòng ban", data: departmentData },
+        ],
+        `Bao_cao_tong_hop_${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting Excel:", err);
+      alert(err.message || "Không thể xuất file Excel");
+    }
+  };
+
+  // Xuất PDF
+  const handleExportPDF = async () => {
+    if (!stats) return;
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN");
+
+      // Tạo dữ liệu bảng tổng quan
+      const summaryRows = [
+        ["Tổng thiết bị", stats.totalDevices.toString()],
+        ["Thiết bị trong kho", stats.warehouseDevices.toString()],
+        ["Thiết bị đang sử dụng", stats.inUseDevices.toString()],
+        ["Đang hoạt động", (stats.byStatus.active || 0).toString()],
+        ["Cần bảo trì", (stats.byStatus.maintenance || 0).toString()],
+        ["Đã hỏng", (stats.byStatus.broken || 0).toString()],
+        ["Thanh lý", (stats.byStatus.retired || 0).toString()],
+        ["Tổng phiếu mượn", stats.borrowStats.total.toString()],
+        ["Đang mượn", stats.borrowStats.borrowed.toString()],
+        ["Đã trả", stats.borrowStats.returned.toString()],
+        ["Quá hạn", stats.borrowStats.overdue.toString()],
+      ];
+
+      exportTableToPDF(
+        "BÁO CÁO TỔNG HỢP",
+        ["Chỉ tiêu", "Giá trị"],
+        summaryRows,
+        `Bao_cao_tong_hop_${new Date().toISOString().split("T")[0]}`,
+        `Ngày báo cáo: ${dateStr}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting PDF:", err);
+      alert(err.message || "Không thể xuất file PDF");
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>
@@ -302,6 +386,23 @@ export default function SummaryReportPage() {
           <Typography variant="h4" component="h1" fontWeight="bold">
             Báo cáo tổng hợp
           </Typography>
+          <Box sx={{ flexGrow: 1 }} />
+          <Button
+            startIcon={<ExcelIcon />}
+            onClick={handleExportExcel}
+            variant="outlined"
+            color="success"
+          >
+            Xuất Excel
+          </Button>
+          <Button
+            startIcon={<PdfIcon />}
+            onClick={handleExportPDF}
+            variant="outlined"
+            color="error"
+          >
+            Xuất PDF
+          </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
           Tổng quan về thiết bị, kho và hoạt động mượn trả
