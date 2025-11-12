@@ -763,39 +763,6 @@ export default function NewUserPage() {
               >
                 Danh sách
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => router.push("/users/new")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: "rgba(255,255,255,0.3)",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.4)" },
-                }}
-              >
-                Thêm mới
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<SettingsIcon />}
-                onClick={() => router.push("/users/roles")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Phân quyền
-              </Button>
             </Box>
           )}
 

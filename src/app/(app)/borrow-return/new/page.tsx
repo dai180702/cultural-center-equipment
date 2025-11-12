@@ -17,6 +17,15 @@ import {
   Autocomplete,
   Chip,
   Divider,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  InputAdornment,
+  IconButton,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -32,6 +41,8 @@ import {
   Save as SaveIcon,
   Cancel as CancelIcon,
   ArrowBack as ArrowBackIcon,
+  Search as SearchIcon,
+  Clear as ClearIcon,
 } from "@mui/icons-material";
 
 export default function NewBorrowPage() {
@@ -43,7 +54,9 @@ export default function NewBorrowPage() {
   const [success, setSuccess] = useState<string | null>(null);
 
   const [devices, setDevices] = useState<Device[]>([]);
+  const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
 
   const [formData, setFormData] = useState<BorrowFormData>({
     deviceId: "",
@@ -68,6 +81,28 @@ export default function NewBorrowPage() {
     loadData();
   }, [currentUser, router]);
 
+  // Tìm kiếm thiết bị real-time
+  useEffect(() => {
+    if (!searchTerm.trim()) {
+      setDevices(allDevices);
+    } else {
+      const filtered = allDevices.filter((device) => {
+        const searchFields = [
+          device.name,
+          device.code,
+          device.brand,
+          device.model,
+          device.serialNumber,
+          device.category,
+        ]
+          .join(" ")
+          .toLowerCase();
+        return searchFields.includes(searchTerm.toLowerCase());
+      });
+      setDevices(filtered);
+    }
+  }, [searchTerm, allDevices]);
+
   const loadData = async () => {
     try {
       setLoadingData(true);
@@ -82,6 +117,7 @@ export default function NewBorrowPage() {
             device.location === "Kho" ||
             !device.location)
       );
+      setAllDevices(availableDevices);
       setDevices(availableDevices);
 
       // Tự động set người mượn là user hiện tại (bắt buộc, không thể thay đổi)
@@ -164,6 +200,46 @@ export default function NewBorrowPage() {
         }
       } catch (err) {
         // Ignore error khi check, sẽ check lại khi submit
+      }
+    }
+  };
+
+  // Hàm chọn thiết bị từ bảng danh sách
+  const handleSelectDevice = async (device: Device) => {
+    if (device && device.id) {
+      setFormData((prev) => ({
+        ...prev,
+        deviceId: device.id || "",
+        deviceCode: device.code,
+        deviceName: device.name,
+      }));
+      setErrors((prev) => ({ ...prev, deviceId: "" }));
+
+      // Check availability
+      if (formData.borrowDate) {
+        try {
+          const borrowDate = new Date(formData.borrowDate);
+          const expectedReturnDate = formData.expectedReturnDate
+            ? new Date(formData.expectedReturnDate)
+            : undefined;
+
+          const availability = await checkDeviceAvailability(
+            device.id,
+            borrowDate,
+            expectedReturnDate
+          );
+
+          if (!availability.available) {
+            setErrors((prev) => ({
+              ...prev,
+              deviceId:
+                availability.message ||
+                "Thiết bị đang được mượn trong khoảng thời gian này",
+            }));
+          }
+        } catch (err) {
+          // Ignore error khi check, sẽ check lại khi submit
+        }
       }
     }
   };
@@ -453,78 +529,190 @@ export default function NewBorrowPage() {
             </Box>
             <CardContent sx={{ p: 4 }}>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-                {/* Thiết bị */}
+                {/* Thiết bị - Tìm kiếm và Danh sách */}
                 <Box>
-                  <Box sx={{ mb: 1.5 }}>
+                  <Box sx={{ mb: 2 }}>
                     <Typography
                       variant="subtitle2"
                       color="text.secondary"
                       gutterBottom
                     >
-                      Chọn thiết bị cần mượn
+                      Chọn thiết bị cần mượn từ kho
                     </Typography>
                   </Box>
-                  <Autocomplete
-                    options={devices}
-                    getOptionLabel={(option) =>
-                      `${option.code} - ${option.name}`
-                    }
-                    value={
-                      devices.find((d) => d.id === formData.deviceId) || null
-                    }
-                    onChange={(_, newValue) => handleDeviceChange(newValue)}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        label="Thiết bị *"
-                        error={!!errors.deviceId}
-                        helperText={errors.deviceId}
-                        placeholder="Tìm kiếm và chọn thiết bị"
-                        sx={{
-                          "& .MuiOutlinedInput-root": {
-                            borderRadius: 2,
-                            bgcolor: "background.paper",
-                          },
-                        }}
-                      />
-                    )}
-                    renderOption={(props, option) => (
-                      <Box
-                        component="li"
-                        {...props}
-                        sx={{
-                          py: 1.5,
-                          px: 2,
-                          "&:hover": {
-                            bgcolor: "action.hover",
-                          },
-                        }}
-                      >
-                        <Box>
-                          <Typography variant="body1" fontWeight="medium">
-                            {option.code} - {option.name}
-                          </Typography>
-                          <Typography variant="caption" color="text.secondary">
-                            {option.category} | {option.brand} {option.model} |{" "}
-                            <Chip
-                              label={
-                                option.status === "active"
-                                  ? "Sẵn sàng"
-                                  : option.status
-                              }
-                              size="small"
-                              color={
-                                option.status === "active"
-                                  ? "success"
-                                  : "default"
-                              }
-                              sx={{ height: 18, fontSize: "0.7rem" }}
-                            />
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
+
+                  {/* Search Bar */}
+                  <TextField
+                    fullWidth
+                    placeholder="Tìm kiếm thiết bị (tên, mã, thương hiệu, model, serial number...)"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <SearchIcon color="action" />
+                        </InputAdornment>
+                      ),
+                      endAdornment: searchTerm && (
+                        <InputAdornment position="end">
+                          <IconButton
+                            size="small"
+                            onClick={() => setSearchTerm("")}
+                          >
+                            <ClearIcon />
+                          </IconButton>
+                        </InputAdornment>
+                      ),
+                    }}
+                    sx={{
+                      mb: 2,
+                      "& .MuiOutlinedInput-root": {
+                        borderRadius: 2,
+                      },
+                    }}
                   />
+
+                  {/* Thiết bị đã chọn */}
+                  {formData.deviceId && (
+                    <Alert
+                      severity="success"
+                      sx={{ mb: 2 }}
+                      onClose={() => {
+                        setFormData((prev) => ({
+                          ...prev,
+                          deviceId: "",
+                          deviceCode: "",
+                          deviceName: "",
+                        }));
+                      }}
+                    >
+                      Đã chọn: <strong>{formData.deviceCode} - {formData.deviceName}</strong>
+                    </Alert>
+                  )}
+
+                  {/* Error message */}
+                  {errors.deviceId && (
+                    <Alert severity="error" sx={{ mb: 2 }}>
+                      {errors.deviceId}
+                    </Alert>
+                  )}
+
+                  {/* Danh sách thiết bị */}
+                  <TableContainer
+                    component={Paper}
+                    sx={{
+                      maxHeight: 400,
+                      border: "1px solid",
+                      borderColor: "divider",
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Table stickyHeader size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ fontWeight: "bold", bgcolor: "grey.50" }}>
+                            Mã TB
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold", bgcolor: "grey.50" }}>
+                            Tên thiết bị
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold", bgcolor: "grey.50" }}>
+                            Danh mục
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold", bgcolor: "grey.50" }}>
+                            Thương hiệu
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: "bold", bgcolor: "grey.50" }}>
+                            Model
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            sx={{ fontWeight: "bold", bgcolor: "grey.50" }}
+                          >
+                            Trạng thái
+                          </TableCell>
+                          <TableCell
+                            align="center"
+                            sx={{ fontWeight: "bold", bgcolor: "grey.50" }}
+                          >
+                            Thao tác
+                          </TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {devices.length === 0 ? (
+                          <TableRow>
+                            <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                              <Typography variant="body2" color="text.secondary">
+                                {searchTerm
+                                  ? "Không tìm thấy thiết bị phù hợp"
+                                  : "Không có thiết bị nào trong kho"}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        ) : (
+                          devices.map((device) => (
+                            <TableRow
+                              key={device.id}
+                              hover
+                              sx={{
+                                bgcolor:
+                                  formData.deviceId === device.id
+                                    ? "action.selected"
+                                    : "inherit",
+                              }}
+                            >
+                              <TableCell>{device.code}</TableCell>
+                              <TableCell>
+                                <Typography variant="body2" fontWeight="medium">
+                                  {device.name}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" color="text.secondary">
+                                  {device.category}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" color="text.secondary">
+                                  {device.brand}
+                                </Typography>
+                              </TableCell>
+                              <TableCell>
+                                <Typography variant="body2" color="text.secondary">
+                                  {device.model || "-"}
+                                </Typography>
+                              </TableCell>
+                              <TableCell align="center">
+                                <Chip
+                                  label="Sẵn sàng"
+                                  size="small"
+                                  color="success"
+                                  sx={{ fontSize: "0.75rem" }}
+                                />
+                              </TableCell>
+                              <TableCell align="center">
+                                <Button
+                                  variant={
+                                    formData.deviceId === device.id
+                                      ? "contained"
+                                      : "outlined"
+                                  }
+                                  size="small"
+                                  onClick={() => handleSelectDevice(device)}
+                                  disabled={formData.deviceId === device.id}
+                                >
+                                  {formData.deviceId === device.id
+                                    ? "Đã chọn"
+                                    : "Chọn"}
+                                </Button>
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        )}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
                 </Box>
 
                 <Divider />

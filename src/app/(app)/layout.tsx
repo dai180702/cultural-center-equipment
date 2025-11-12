@@ -247,22 +247,6 @@ export default function AppSectionLayout({
               <Button
                 fullWidth
                 size="small"
-                startIcon={<CheckCircleIcon />}
-                onClick={() => router.push("/devices/status")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Trạng thái thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
                 startIcon={<BarChartIcon />}
                 onClick={() => router.push("/devices/reports")}
                 sx={{
@@ -275,22 +259,6 @@ export default function AppSectionLayout({
                 }}
               >
                 Báo cáo thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<WarningIcon />}
-                onClick={() => router.push("/devices/issues")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Sự cố thiết bị
               </Button>
             </Box>
           )}
@@ -336,22 +304,7 @@ export default function AppSectionLayout({
               >
                 Danh sách kho thiết bị
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<ListIcon />}
-                onClick={() => router.push("/inventory/stock")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Tồn kho
-              </Button>
+             
               <Button
                 fullWidth
                 size="small"
@@ -661,40 +614,6 @@ export default function AppSectionLayout({
               >
                 Danh sách
               </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AddIcon />}
-                onClick={() => router.push("/users/new")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Thêm mới
-              </Button>
-              {permissions.canManagePermissions && (
-                <Button
-                  fullWidth
-                  size="small"
-                  startIcon={<SettingsIcon />}
-                  onClick={() => router.push("/users/roles")}
-                  sx={{
-                    justifyContent: "flex-start",
-                    color: "white",
-                    opacity: 0.9,
-                    fontSize: "0.875rem",
-                    py: 0.5,
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                  }}
-                >
-                  Phân quyền
-                </Button>
-              )}
               {permissions.canManageActionPassword && (
                 <Button
                   fullWidth

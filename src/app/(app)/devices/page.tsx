@@ -634,22 +634,6 @@ export default function DevicesPage() {
               <Button
                 fullWidth
                 size="small"
-                startIcon={<CheckCircleIcon />}
-                onClick={() => router.push("/devices/status")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Trạng thái thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
                 startIcon={<BarChartIcon />}
                 onClick={() => router.push("/devices/reports")}
                 sx={{
@@ -662,22 +646,6 @@ export default function DevicesPage() {
                 }}
               >
                 Báo cáo thiết bị
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<WarningIcon />}
-                onClick={() => router.push("/devices/issues")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Sự cố thiết bị
               </Button>
             </Box>
           )}
