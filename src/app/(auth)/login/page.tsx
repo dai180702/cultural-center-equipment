@@ -9,7 +9,9 @@ import {
   TextField,
   Typography,
   Alert,
+  Link as MuiLink,
 } from "@mui/material";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -100,6 +102,21 @@ export default function LoginPage() {
             >
               {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </Button>
+
+            <Box sx={{ mt: 2, textAlign: "center" }}>
+              <Link href="/forgot-password" passHref legacyBehavior>
+                <MuiLink
+                  sx={{
+                    textDecoration: "none",
+                    "&:hover": {
+                      textDecoration: "underline",
+                    },
+                  }}
+                >
+                  Quên mật khẩu?
+                </MuiLink>
+              </Link>
+            </Box>
           </form>
         </Paper>
       </Container>
