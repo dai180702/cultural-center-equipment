@@ -275,11 +275,10 @@ export default function MaintenanceReportPage() {
           </Button>
         </Stack>
         <Typography variant="body1" color="text.secondary">
-          Thống kê và phân tích tình trạng bảo trì thiết bị
+          Thống kê và phân tích tình trạng bảo trì thiết bị!
         </Typography>
       </Box>
 
-      {/* Thống kê tổng quan */}
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
         <Box
           sx={{
@@ -310,7 +309,7 @@ export default function MaintenanceReportPage() {
             </CardContent>
           </Card>
         </Box>
-        <Box
+        <Box 
           sx={{
             flex: {
               xs: "1 1 100%",
