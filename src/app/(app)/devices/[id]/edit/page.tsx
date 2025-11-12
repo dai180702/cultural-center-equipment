@@ -66,32 +66,6 @@ export default function EditDevicePage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
 
-  useEffect(() => {
-    if (!currentUser) {
-      router.replace("/login");
-      return;
-    }
-    router.replace("/devices");
-  }, [currentUser, router]);
-
-  return (
-    <Box
-      sx={{
-        minHeight: "60vh",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        gap: 2,
-      }}
-    >
-      <CircularProgress />
-      <Typography variant="body1" color="text.secondary" align="center">
-        Chỉnh sửa thiết bị chỉ thực hiện ở Kho. Đang chuyển về danh sách thiết bị...
-      </Typography>
-    </Box>
-  );
-
   const [device, setDevice] = useState<Device | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -297,9 +271,14 @@ export default function EditDevicePage() {
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
             Người dùng
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.8, display: "block" }}>
-            {currentUser.email}
-          </Typography>
+          {currentUser?.email && (
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, display: "block" }}
+            >
+              {currentUser.email}
+            </Typography>
+          )}
         </Box>
       </Box>
 
@@ -440,7 +419,8 @@ export default function EditDevicePage() {
               </Box>
 
               <Typography variant="body1" color="text.secondary">
-                Cập nhật thông tin thiết bị: {device.name} (Mã: {device.code})
+                Cập nhật thông tin thiết bị: {device?.name || "N/A"} (Mã:{" "}
+                {device?.code || "N/A"})
               </Typography>
             </Box>
 
