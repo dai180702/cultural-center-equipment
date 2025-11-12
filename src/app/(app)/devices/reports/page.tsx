@@ -566,8 +566,8 @@ export default function DeviceReportsPage() {
         </Card>
 
         {/* Statistics Cards */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} sm={6} md={3}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
+          <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(25% - 18px)" } }}>
             <Card
               sx={{
                 height: "100%",
@@ -595,8 +595,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(25% - 18px)" } }}>
             <Card
               sx={{
                 height: "100%",
@@ -639,8 +639,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(25% - 18px)" } }}>
             <Card
               sx={{
                 height: "100%",
@@ -683,8 +683,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} sm={6} md={3}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(25% - 18px)" } }}>
             <Card
               sx={{
                 height: "100%",
@@ -727,12 +727,12 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Charts Section */}
-        <Grid container spacing={3} sx={{ mb: 4 }}>
-          <Grid item xs={12} md={6}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 4 }}>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
             <Card sx={{ height: "100%", boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -747,8 +747,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} md={6}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
             <Card sx={{ height: "100%", boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -763,8 +763,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} md={4}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(33.333% - 16px)" } }}>
             <Card sx={{ height: "100%", boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -793,8 +793,8 @@ export default function DeviceReportsPage() {
                 </Box>
               </CardContent>
             </Card>
-          </Grid>
-          <Grid item xs={12} md={8}>
+          </Box>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(66.666% - 12px)" } }}>
             <Card sx={{ height: "100%", boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -856,13 +856,13 @@ export default function DeviceReportsPage() {
                 </TableContainer>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Statistics Tables */}
-        <Grid container spacing={3}>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
           {/* By Status */}
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
             <Card sx={{ boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -934,10 +934,10 @@ export default function DeviceReportsPage() {
                 </TableContainer>
               </CardContent>
             </Card>
-          </Grid>
+          </Box>
 
           {/* By Category */}
-          <Grid item xs={12} md={6}>
+          <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
             <Card sx={{ boxShadow: 3 }}>
               <CardContent>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
@@ -1000,8 +1000,8 @@ export default function DeviceReportsPage() {
                 </TableContainer>
               </CardContent>
             </Card>
-          </Grid>
-        </Grid>
+          </Box>
+        </Box>
 
         {/* Snackbars */}
         <Snackbar

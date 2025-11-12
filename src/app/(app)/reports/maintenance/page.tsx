@@ -37,7 +37,11 @@ import {
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
-import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
+import {
+  exportToExcel,
+  exportToExcelMultiSheet,
+  exportTableToPDF,
+} from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -276,8 +280,16 @@ export default function MaintenanceReportPage() {
       </Box>
 
       {/* Thống kê tổng quan */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
@@ -285,9 +297,7 @@ export default function MaintenanceReportPage() {
           >
             <CardContent>
               <Stack direction="row" spacing={2} alignItems="center">
-                <CheckCircleIcon
-                  sx={{ fontSize: 40, color: "success.main" }}
-                />
+                <CheckCircleIcon sx={{ fontSize: 40, color: "success.main" }} />
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
                     {maintenanceStats.active}
@@ -299,8 +309,16 @@ export default function MaintenanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.warning.main, 0.1),
@@ -320,8 +338,16 @@ export default function MaintenanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.error.main, 0.1),
@@ -341,8 +367,16 @@ export default function MaintenanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.grey[500], 0.1),
@@ -362,12 +396,12 @@ export default function MaintenanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Biểu đồ */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -378,8 +412,8 @@ export default function MaintenanceReportPage() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -405,8 +439,8 @@ export default function MaintenanceReportPage() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Danh sách thiết bị cần bảo trì */}
       <Card>
@@ -496,4 +530,3 @@ export default function MaintenanceReportPage() {
     </Container>
   );
 }
-

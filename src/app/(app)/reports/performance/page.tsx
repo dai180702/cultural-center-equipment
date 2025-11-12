@@ -348,8 +348,8 @@ export default function PerformanceReportPage() {
       </Box>
 
       {/* Thống kê tổng quan */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={4}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
@@ -374,8 +374,8 @@ export default function PerformanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
@@ -403,8 +403,8 @@ export default function PerformanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={4}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", sm: "1 1 calc(50% - 12px)", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.info.main, 0.1),
@@ -424,8 +424,8 @@ export default function PerformanceReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Biểu đồ mượn trả theo tháng */}
       <Card sx={{ mb: 3 }}>

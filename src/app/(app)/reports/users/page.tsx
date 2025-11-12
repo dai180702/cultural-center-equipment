@@ -37,7 +37,11 @@ import {
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
-import { exportToExcel, exportToExcelMultiSheet, exportTableToPDF } from "@/utils/exportUtils";
+import {
+  exportToExcel,
+  exportToExcelMultiSheet,
+  exportTableToPDF,
+} from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -108,35 +112,29 @@ export default function UsersReportPage() {
   };
 
   // Thống kê theo trạng thái
-  const usersByStatus = users.reduce(
-    (acc, user) => {
-      acc[user.status] = (acc[user.status] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const usersByStatus = users.reduce((acc, user) => {
+    acc[user.status] = (acc[user.status] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Thống kê theo vai trò
-  const usersByRole = users.reduce(
-    (acc, user) => {
-      acc[user.role] = (acc[user.role] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const usersByRole = users.reduce((acc, user) => {
+    acc[user.role] = (acc[user.role] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Thống kê theo phòng ban
-  const usersByDepartment = users.reduce(
-    (acc, user) => {
-      acc[user.department] = (acc[user.department] || 0) + 1;
-      return acc;
-    },
-    {} as Record<string, number>
-  );
+  const usersByDepartment = users.reduce((acc, user) => {
+    acc[user.department] = (acc[user.department] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   // Top người dùng mượn nhiều nhất
   const getTopBorrowers = () => {
-    const borrowerCount: Record<string, { count: number; borrowerName?: string; department?: string }> = {};
+    const borrowerCount: Record<
+      string,
+      { count: number; borrowerName?: string; department?: string }
+    > = {};
     borrowRecords.forEach((record) => {
       if (!borrowerCount[record.borrowerId]) {
         borrowerCount[record.borrowerId] = {
@@ -164,9 +162,7 @@ export default function UsersReportPage() {
 
   // Dữ liệu biểu đồ trạng thái
   const statusChartData = {
-    labels: Object.keys(usersByStatus).map(
-      (key) => statusLabels[key] || key
-    ),
+    labels: Object.keys(usersByStatus).map((key) => statusLabels[key] || key),
     datasets: [
       {
         label: "Số lượng",
@@ -236,7 +232,7 @@ export default function UsersReportPage() {
       const userData = users.map((user) => ({
         "Mã NV": user.employeeId,
         "Họ tên": user.fullName,
-        "Email": user.email,
+        Email: user.email,
         "Phòng ban": user.department,
         "Chức vụ": user.position,
         "Vai trò": roleLabels[user.role] || user.role,
@@ -248,7 +244,8 @@ export default function UsersReportPage() {
         {
           "Tổng nhân viên": users.length,
           "Hoạt động": users.filter((u) => u.status === "active").length,
-          "Không hoạt động": users.filter((u) => u.status === "inactive").length,
+          "Không hoạt động": users.filter((u) => u.status === "inactive")
+            .length,
           "Tạm ngưng": users.filter((u) => u.status === "suspended").length,
         },
       ];
@@ -273,9 +270,18 @@ export default function UsersReportPage() {
       const dateStr = now.toLocaleDateString("vi-VN");
       const summaryRows = [
         ["Tổng nhân viên", users.length.toString()],
-        ["Hoạt động", users.filter((u) => u.status === "active").length.toString()],
-        ["Không hoạt động", users.filter((u) => u.status === "inactive").length.toString()],
-        ["Tạm ngưng", users.filter((u) => u.status === "suspended").length.toString()],
+        [
+          "Hoạt động",
+          users.filter((u) => u.status === "active").length.toString(),
+        ],
+        [
+          "Không hoạt động",
+          users.filter((u) => u.status === "inactive").length.toString(),
+        ],
+        [
+          "Tạm ngưng",
+          users.filter((u) => u.status === "suspended").length.toString(),
+        ],
       ];
 
       exportTableToPDF(
@@ -341,8 +347,16 @@ export default function UsersReportPage() {
       </Box>
 
       {/* Thống kê tổng quan */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
@@ -362,8 +376,16 @@ export default function UsersReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
@@ -371,9 +393,7 @@ export default function UsersReportPage() {
           >
             <CardContent>
               <Stack direction="row" spacing={2} alignItems="center">
-                <CheckCircleIcon
-                  sx={{ fontSize: 40, color: "success.main" }}
-                />
+                <CheckCircleIcon sx={{ fontSize: 40, color: "success.main" }} />
                 <Box>
                   <Typography variant="h4" fontWeight="bold">
                     {usersByStatus.active || 0}
@@ -385,8 +405,16 @@ export default function UsersReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.grey[500], 0.1),
@@ -407,8 +435,16 @@ export default function UsersReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={3}>
+        </Box>
+        <Box
+          sx={{
+            flex: {
+              xs: "1 1 100%",
+              sm: "1 1 calc(50% - 12px)",
+              md: "1 1 calc(25% - 18px)",
+            },
+          }}
+        >
           <Card
             sx={{
               bgcolor: (theme) => alpha(theme.palette.info.main, 0.1),
@@ -428,12 +464,12 @@ export default function UsersReportPage() {
               </Stack>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Biểu đồ */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={4}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3, mb: 3 }}>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -444,8 +480,8 @@ export default function UsersReportPage() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -456,8 +492,8 @@ export default function UsersReportPage() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={4}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(33.333% - 16px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -468,8 +504,8 @@ export default function UsersReportPage() {
               </Box>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Top người dùng mượn nhiều nhất */}
       <Card sx={{ mb: 3 }}>
@@ -515,8 +551,8 @@ export default function UsersReportPage() {
       </Card>
 
       {/* Bảng chi tiết */}
-      <Grid container spacing={3}>
-        <Grid item xs={12} md={6}>
+      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 3 }}>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -551,8 +587,8 @@ export default function UsersReportPage() {
               </TableContainer>
             </CardContent>
           </Card>
-        </Grid>
-        <Grid item xs={12} md={6}>
+        </Box>
+        <Box sx={{ flex: { xs: "1 1 100%", md: "1 1 calc(50% - 12px)" } }}>
           <Card>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -587,8 +623,8 @@ export default function UsersReportPage() {
               </TableContainer>
             </CardContent>
           </Card>
-        </Grid>
-      </Grid>
+        </Box>
+      </Box>
 
       {/* Nút làm mới */}
       <Box sx={{ mt: 3, display: "flex", justifyContent: "center" }}>
@@ -619,4 +655,3 @@ export default function UsersReportPage() {
     </Container>
   );
 }
-
