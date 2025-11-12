@@ -186,6 +186,77 @@ export default function InventoryReportPage() {
     },
   };
 
+  // Xuất Excel
+  const handleExportExcel = () => {
+    try {
+      const warehouseData = warehouseDevices.map((device) => ({
+        "Mã thiết bị": device.code,
+        "Tên thiết bị": device.name,
+        "Danh mục": device.category,
+        "Thương hiệu": device.brand,
+        "Model": device.model,
+        "Trạng thái": device.status,
+        "Vị trí": device.location || "Kho",
+        "Phòng ban": device.department || "-",
+      }));
+
+      const inUseData = inUseDevices.map((device) => ({
+        "Mã thiết bị": device.code,
+        "Tên thiết bị": device.name,
+        "Danh mục": device.category,
+        "Thương hiệu": device.brand,
+        "Model": device.model,
+        "Trạng thái": device.status,
+        "Vị trí": device.location || "-",
+        "Phòng ban": device.department || "-",
+      }));
+
+      const summaryData = [
+        {
+          "Thiết bị trong kho": warehouseDevices.length,
+          "Thiết bị đang sử dụng": inUseDevices.length,
+          "Tổng thiết bị": warehouseDevices.length + inUseDevices.length,
+        },
+      ];
+
+      exportToExcelMultiSheet(
+        [
+          { name: "Tổng quan", data: summaryData },
+          { name: "Thiết bị trong kho", data: warehouseData },
+          { name: "Thiết bị đang sử dụng", data: inUseData },
+        ],
+        `Bao_cao_ton_kho_${new Date().toISOString().split("T")[0]}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting Excel:", err);
+      setError(err.message || "Không thể xuất file Excel");
+    }
+  };
+
+  // Xuất PDF
+  const handleExportPDF = () => {
+    try {
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("vi-VN");
+      const summaryRows = [
+        ["Thiết bị trong kho", warehouseDevices.length.toString()],
+        ["Thiết bị đang sử dụng", inUseDevices.length.toString()],
+        ["Tổng thiết bị", (warehouseDevices.length + inUseDevices.length).toString()],
+      ];
+
+      exportTableToPDF(
+        "BÁO CÁO TỒN KHO",
+        ["Chỉ tiêu", "Giá trị"],
+        summaryRows,
+        `Bao_cao_ton_kho_${new Date().toISOString().split("T")[0]}`,
+        `Ngày báo cáo: ${dateStr}`
+      );
+    } catch (err: any) {
+      console.error("Error exporting PDF:", err);
+      setError(err.message || "Không thể xuất file PDF");
+    }
+  };
+
   if (loading) {
     return (
       <Container maxWidth="xl" sx={{ py: 4 }}>

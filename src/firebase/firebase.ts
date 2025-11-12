@@ -4,13 +4,13 @@ import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
 import { getStorage, connectStorageEmulator } from "firebase/storage";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBX2sfeOq4-exaM8XxoQ7llrLA_jpu7Eo0",
-  authDomain: "cultural-center-equipment.firebaseapp.com",
-  projectId: "cultural-center-equipment",
-  storageBucket: "cultural-center-equipment.firebasestorage.app",
-  messagingSenderId: "841413614666",
-  appId: "1:841413614666:web:3ba932c370edecb83edab3",
-  measurementId: "G-DW503JRBP3",
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY ?? "",
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN ?? "",
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? "",
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET ?? "",
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID ?? "",
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID ?? "",
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID ?? "",
 };
 
 const app = initializeApp(firebaseConfig);
@@ -26,7 +26,6 @@ export const getSecondaryAuth = () => {
     : initializeApp(firebaseConfig, secondaryName);
   return getAuth(secondaryApp);
 };
-
 
 if (process.env.NODE_ENV === "development") {
   // Uncomment these lines if you want to use Firebase emulators

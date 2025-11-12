@@ -750,9 +750,22 @@ export default function DeviceDetailPage() {
 
               {/* Borrow Information */}
               {activeBorrow && (
-                <Card sx={{ bgcolor: "primary.light", borderLeft: "4px solid", borderColor: "primary.main" }}>
+                <Card
+                  sx={{
+                    bgcolor: "primary.light",
+                    borderLeft: "4px solid",
+                    borderColor: "primary.main",
+                  }}
+                >
                   <CardContent sx={{ p: 3 }}>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1,
+                        mb: 2,
+                      }}
+                    >
                       <PersonIcon color="primary" />
                       <Typography variant="h6" fontWeight="bold">
                         Thông tin mượn trả
@@ -766,7 +779,11 @@ export default function DeviceDetailPage() {
                         </ListItemIcon>
                         <ListItemText
                           primary="Người mượn"
-                          secondary={activeBorrow.borrowerName || activeBorrow.borrowerId || "N/A"}
+                          secondary={
+                            activeBorrow.borrowerName ||
+                            activeBorrow.borrowerId ||
+                            "N/A"
+                          }
                           secondaryTypographyProps={{ fontWeight: "medium" }}
                         />
                       </ListItem>
@@ -801,7 +818,9 @@ export default function DeviceDetailPage() {
                         </ListItemIcon>
                         <ListItemText
                           primary="Ngày mượn"
-                          secondary={formatFirestoreDate(activeBorrow.borrowDate)}
+                          secondary={formatFirestoreDate(
+                            activeBorrow.borrowDate
+                          )}
                         />
                       </ListItem>
 
@@ -812,7 +831,9 @@ export default function DeviceDetailPage() {
                           </ListItemIcon>
                           <ListItemText
                             primary="Dự kiến trả"
-                            secondary={formatFirestoreDate(activeBorrow.expectedReturnDate)}
+                            secondary={formatFirestoreDate(
+                              activeBorrow.expectedReturnDate
+                            )}
                           />
                         </ListItem>
                       )}
@@ -825,7 +846,10 @@ export default function DeviceDetailPage() {
                           <ListItemText
                             primary="Trạng thái"
                             secondary="Quá hạn trả"
-                            secondaryTypographyProps={{ color: "error.main", fontWeight: "bold" }}
+                            secondaryTypographyProps={{
+                              color: "error.main",
+                              fontWeight: "bold",
+                            }}
                           />
                         </ListItem>
                       )}
@@ -1046,8 +1070,8 @@ export default function DeviceDetailPage() {
               <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
               <DialogContent>
                 <Typography>
-                  Bạn có chắc chắn muốn xóa thiết bị "{device.name}" (Mã:{" "}
-                  {device.code})?
+                  Bạn có chắc chắn muốn xóa thiết bị &quot;{device.name}&quot;
+                  (Mã: {device.code})?
                 </Typography>
                 <Typography
                   variant="body2"

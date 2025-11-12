@@ -45,7 +45,12 @@ import {
   PictureAsPdf as PdfIcon,
   TableChart as ExcelIcon,
 } from "@mui/icons-material";
-import { exportToExcel, exportTableToPDF, exportHTMLToPDF } from "@/utils/exportUtils";
+import {
+  exportToExcel,
+  exportToExcelMultiSheet,
+  exportTableToPDF,
+  exportHTMLToPDF,
+} from "@/utils/exportUtils";
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -135,6 +140,29 @@ export default function SummaryReportPage() {
     }
   };
 
+  const toDate = (value: any): Date | null => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value?.toDate === "function") {
+      return value.toDate();
+    }
+    const date = new Date(value);
+    return isNaN(date.getTime()) ? null : date;
+  };
+
+  const isBorrowRecordOverdue = (record: BorrowRecord): boolean => {
+    const expectedReturnDate = toDate(record.expectedReturnDate);
+    if (!expectedReturnDate) return false;
+
+    const returnDate = toDate(record.returnDate);
+    if (returnDate) {
+      return returnDate > expectedReturnDate;
+    }
+
+    const now = new Date();
+    return now > expectedReturnDate;
+  };
+
   const calculateStats = (
     devicesData: Device[],
     warehouseData: Device[],
@@ -163,11 +191,21 @@ export default function SummaryReportPage() {
     }, {} as Record<string, number>);
 
     // Thống kê mượn trả
+    const overdueRecords = borrowsData.filter((record) =>
+      isBorrowRecordOverdue(record)
+    );
+    const borrowedRecords = borrowsData.filter(
+      (record) => !isBorrowRecordOverdue(record) && record.status === "borrowed"
+    );
+    const returnedRecords = borrowsData.filter(
+      (record) => !isBorrowRecordOverdue(record) && record.status === "returned"
+    );
+
     const borrowStats = {
       total: borrowsData.length,
-      borrowed: borrowsData.filter((b) => b.status === "borrowed").length,
-      returned: borrowsData.filter((b) => b.status === "returned").length,
-      overdue: borrowsData.filter((b) => b.status === "overdue").length,
+      borrowed: borrowedRecords.length,
+      returned: returnedRecords.length,
+      overdue: overdueRecords.length,
     };
 
     setStats({
@@ -292,16 +330,20 @@ export default function SummaryReportPage() {
       ];
 
       // Thêm sheet theo danh mục
-      const categoryData = Object.entries(stats.byCategory).map(([key, value]) => ({
-        "Danh mục": key,
-        "Số lượng": value,
-      }));
+      const categoryData = Object.entries(stats.byCategory).map(
+        ([key, value]) => ({
+          "Danh mục": key,
+          "Số lượng": value,
+        })
+      );
 
       // Thêm sheet theo phòng ban
-      const departmentData = Object.entries(stats.byDepartment).map(([key, value]) => ({
-        "Phòng ban": key,
-        "Số lượng": value,
-      }));
+      const departmentData = Object.entries(stats.byDepartment).map(
+        ([key, value]) => ({
+          "Phòng ban": key,
+          "Số lượng": value,
+        })
+      );
 
       exportToExcelMultiSheet(
         [

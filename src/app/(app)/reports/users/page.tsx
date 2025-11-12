@@ -136,20 +136,26 @@ export default function UsersReportPage() {
 
   // Top người dùng mượn nhiều nhất
   const getTopBorrowers = () => {
-    const borrowerCount: Record<string, number> = {};
+    const borrowerCount: Record<string, { count: number; borrowerName?: string; department?: string }> = {};
     borrowRecords.forEach((record) => {
-      borrowerCount[record.borrowerId] =
-        (borrowerCount[record.borrowerId] || 0) + 1;
+      if (!borrowerCount[record.borrowerId]) {
+        borrowerCount[record.borrowerId] = {
+          count: 0,
+          borrowerName: record.borrowerName,
+          department: record.department,
+        };
+      }
+      borrowerCount[record.borrowerId].count += 1;
     });
 
     return Object.entries(borrowerCount)
-      .map(([userId, count]) => {
+      .map(([userId, data]) => {
         const user = users.find((u) => u.uid === userId || u.id === userId);
         return {
           userId,
-          userName: user?.fullName || record.borrowerName || "Không xác định",
-          department: user?.department || record.department || "-",
-          count,
+          userName: user?.fullName || data.borrowerName || "Không xác định",
+          department: user?.department || data.department || "-",
+          count: data.count,
         };
       })
       .sort((a, b) => b.count - a.count)

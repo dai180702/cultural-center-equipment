@@ -40,11 +40,7 @@ import useMediaQuery from "@mui/material/useMediaQuery";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
-import {
-  getDevices,
-  Device,
-  searchDevices,
-} from "@/services/devices";
+import { getDevices, Device, searchDevices } from "@/services/devices";
 import {
   getWarehouseDevices,
   moveDeviceFromWarehouseToDevices,
@@ -1597,8 +1593,9 @@ export default function DevicesPage() {
         <DialogTitle>Xác nhận chuyển vào kho</DialogTitle>
         <DialogContent>
           <Typography>
-            Bạn có chắc chắn muốn chuyển thiết bị "
-            {deviceToTransfer?.name}" (Mã: {deviceToTransfer?.code}) vào kho?
+            Bạn có chắc chắn muốn chuyển thiết bị &quot;
+            {deviceToTransfer?.name}&quot; (Mã: {deviceToTransfer?.code}) vào
+            kho?
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
             Thiết bị sẽ không còn trong danh sách đang sử dụng và sẽ xuất hiện
@@ -1943,17 +1940,32 @@ export default function DevicesPage() {
 
               {/* Thông tin mượn trả */}
               {activeBorrow && (
-                <Box sx={{ mt: 2, p: 2, bgcolor: "primary.light", borderRadius: 1 }}>
-                  <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+                <Box
+                  sx={{
+                    mt: 2,
+                    p: 2,
+                    bgcolor: "primary.light",
+                    borderRadius: 1,
+                  }}
+                >
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
                     Thông tin mượn trả
                   </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}
+                  >
                     <Box>
                       <Typography variant="subtitle2" color="text.secondary">
                         Người mượn
                       </Typography>
                       <Typography variant="body1" fontWeight="medium">
-                        {activeBorrow.borrowerName || activeBorrow.borrowerId || "N/A"}
+                        {activeBorrow.borrowerName ||
+                          activeBorrow.borrowerId ||
+                          "N/A"}
                       </Typography>
                     </Box>
                     {activeBorrow.department && (
@@ -1996,11 +2008,7 @@ export default function DevicesPage() {
                     )}
                     {activeBorrow.status === "overdue" && (
                       <Box>
-                        <Chip
-                          label="Quá hạn trả"
-                          color="error"
-                          size="small"
-                        />
+                        <Chip label="Quá hạn trả" color="error" size="small" />
                       </Box>
                     )}
                   </Box>

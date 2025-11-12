@@ -199,7 +199,7 @@ export const moveDeviceFromDevicesToWarehouse = async (
     const warehouseData: DeviceFormData = {
       ...deviceData,
       location: "Kho",
-      assignedTo: undefined, // Clear assignedTo when moving to warehouse
+      assignedTo: undefined, 
       transferredToWarehouseAt: transferTime.toISOString(),
       transferredToWarehouseBy: transferUserId,
       transferredToWarehouseByName: transferUserName,

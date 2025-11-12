@@ -73,7 +73,8 @@ export default function BorrowReturnPage() {
   );
   const [returning, setReturning] = useState(false);
   const [detailDrawerOpen, setDetailDrawerOpen] = useState(false);
-  const [selectedRecordForView, setSelectedRecordForView] = useState<BorrowRecord | null>(null);
+  const [selectedRecordForView, setSelectedRecordForView] =
+    useState<BorrowRecord | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
@@ -893,7 +894,9 @@ export default function BorrowReturnPage() {
                     Người mượn
                   </Typography>
                   <Typography variant="body1" fontWeight="medium">
-                    {selectedRecordForView.borrowerName || selectedRecordForView.borrowerId || "N/A"}
+                    {selectedRecordForView.borrowerName ||
+                      selectedRecordForView.borrowerId ||
+                      "N/A"}
                   </Typography>
                 </Box>
                 {selectedRecordForView.department && (
@@ -930,7 +933,9 @@ export default function BorrowReturnPage() {
                       Dự kiến trả
                     </Typography>
                     <Typography variant="body1">
-                      {formatFirestoreDate(selectedRecordForView.expectedReturnDate)}
+                      {formatFirestoreDate(
+                        selectedRecordForView.expectedReturnDate
+                      )}
                     </Typography>
                   </Box>
                 )}

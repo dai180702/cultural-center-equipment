@@ -106,7 +106,7 @@ const getPermissionsByRole = (
       canManagePermissions: false,
       canManageActionPassword: false,
       canViewReports: true,
-      canBorrowReturnDevices: false,
+      canBorrowReturnDevices: true,
       canViewStatistics: true,
     };
   }

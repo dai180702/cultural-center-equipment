@@ -370,6 +370,586 @@ Module chuyên biệt để quản lý thiết bị cần bảo trì và đã h�
 - Một số chức năng có quyền hạn khác nhau tùy theo Actor, được phân cấp rõ ràng trong hệ thống.
 - Tất cả các chức năng đều có validation và kiểm tra quyền truy cập trước khi thực hiện.
 
+### 3.3. Đặc tả UseCase
+
+**Bảng 3.3: Tổng quan Use Case theo module**
+
+| Module                | Use Case ID | Tên Use Case                        | Actor chính                      |
+| --------------------- | ----------- | ----------------------------------- | -------------------------------- |
+| Đăng nhập & Dashboard | UC01, UC02  | Đăng nhập hệ thống; Xem Dashboard   | Tất cả Actor                     |
+| Quản lý nhân viên     | UC03        | Thêm nhân viên                      | Lãnh đạo, Quản lý                |
+| Quản lý thiết bị      | UC08        | Thêm thiết bị vào kho               | Lãnh đạo, Quản lý, Kỹ thuật viên |
+| Quản lý thiết bị      | UC17        | Chuyển thiết bị từ kho sang sử dụng | Tất cả Actor                     |
+| Bảo trì thiết bị      | UC20        | Cập nhật lịch sử bảo trì            | Lãnh đạo, Quản lý, Kỹ thuật viên |
+| Mượn trả thiết bị     | UC21, UC22  | Mượn thiết bị; Trả thiết bị         | Lãnh đạo, Quản lý, Nhân viên     |
+| Báo cáo thống kê      | UC24        | Xem báo cáo tổng hợp                | Tất cả Actor                     |
+| Mật khẩu hành động    | UC29        | Quản lý mật khẩu hành động          | Lãnh đạo                         |
+| Thông báo             | UC31        | Quản lý thông báo nội bộ            | Lãnh đạo, Quản lý                |
+
+#### 3.3.1. UC01: Đăng nhập hệ thống
+
+**Use Case ID:** UC01
+
+**Tên Use Case:** Đăng nhập hệ thống
+
+**Mô tả:** Người dùng đăng nhập bằng email và mật khẩu đã được quản trị viên cấp; hệ thống xác thực và gán quyền theo vai trò.
+
+**Tác nhân (Actor):** Tất cả Actor (Lãnh đạo, Quản lý, Nhân viên, Kỹ thuật viên)
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã có tài khoản hợp lệ trong Firebase Authentication và bản ghi tương ứng trong collection `users`.
+- Hệ thống mạng và dịch vụ Firebase đang hoạt động.
+
+**Điều kiện sau:**
+
+- Phiên đăng nhập được khởi tạo (Firebase Auth + session phía client).
+- Giao diện điều hướng về Dashboard kèm theo bộ quyền tương ứng vai trò người dùng.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang đăng nhập.
+2. Hệ thống hiển thị form nhập email và mật khẩu.
+3. Người dùng nhập thông tin và nhấn “Đăng nhập”.
+4. Firebase Authentication xác thực thông tin.
+5. Hệ thống truy vấn collection `users` lấy thông tin vai trò.
+6. Hệ thống khởi tạo session và lưu thông tin người dùng trong state.
+7. Hệ thống điều hướng đến trang Dashboard.
+
+**Luồng thay thế:**
+
+- **3a. Email hoặc mật khẩu không đúng:** Hệ thống hiển thị thông báo lỗi và giữ người dùng ở trang đăng nhập.
+- **4a. Tài khoản bị vô hiệu hóa:** Hệ thống thông báo “Tài khoản đã bị khóa, liên hệ quản trị viên”.
+
+**Quy tắc nghiệp vụ:**
+
+- Chỉ tài khoản được quản trị viên tạo mới có thể đăng nhập.
+- Vai trò được lấy từ trường `role` trong collection `users` và không thể chỉnh sửa trong lúc đăng nhập.
+- Mỗi lần đăng nhập được ghi lại trong audit log (module nhật ký hoạt động).
+
+**Yêu cầu phi chức năng:**
+
+- Thời gian phản hồi xác thực < 3 giây trong điều kiện mạng ổn định.
+- Thông tin chứng thực gửi qua kết nối HTTPS.
+- Hệ thống hiển thị thông báo lỗi thân thiện và không tiết lộ chi tiết kỹ thuật.
+
+---
+
+#### 3.3.2. UC02: Xem Dashboard
+
+**Use Case ID:** UC02
+
+**Tên Use Case:** Xem Dashboard
+
+**Mô tả:** Người dùng xem bảng điều khiển tổng quan với thống kê thiết bị, nhân sự, phòng ban và cảnh báo.
+
+**Tác nhân (Actor):** Tất cả Actor
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập thành công.
+
+**Điều kiện sau:**
+
+- Dashboard được hiển thị với số liệu mới nhất.
+- Các phân hệ thống kê được cache tạm thời trên client cho phiên hiện tại.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang Dashboard.
+2. Hệ thống gọi dịch vụ tổng hợp dữ liệu từ `devices`, `warehouse`, `users`, `departments`, `borrowRecords`.
+3. Hệ thống tính toán các chỉ số (tổng số thiết bị, trạng thái, thiết bị mới, tổng nhân viên, tổng phòng ban, cảnh báo bảo trì).
+4. Hệ thống hiển thị card, biểu đồ và danh sách cảnh báo.
+
+**Luồng thay thế:**
+
+- **2a. Lỗi tải dữ liệu:** Hệ thống hiển thị thông báo lỗi và cho phép người dùng thử tải lại.
+
+**Quy tắc nghiệp vụ:**
+
+- Dữ liệu thống kê phản ánh thời điểm hiện tại (realtime hoặc gần realtime).
+- Người dùng chỉ xem được thông tin thuộc phạm vi tổ chức; không lọc theo phòng ban nếu không có quyền.
+
+**Yêu cầu phi chức năng:**
+
+- Thời gian tải Dashboard < 5 giây với 10.000 bản ghi thiết bị.
+- Các biểu đồ responsive trên thiết bị di động.
+- Dữ liệu hiển thị phải được làm mới tự động tối thiểu mỗi 60 giây.
+
+---
+
+#### 3.3.3. UC03: Thêm nhân viên
+
+**Use Case ID:** UC03
+
+**Tên Use Case:** Thêm nhân viên
+
+**Mô tả:** Người có quyền nhập thông tin và tạo mới hồ sơ nhân viên, đồng thời tạo tài khoản đăng nhập tương ứng.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập.
+- Quyền `canManageUsers = true`.
+- Mật khẩu hành động đã được thiết lập trong hệ thống.
+
+**Điều kiện sau:**
+
+- Bản ghi nhân viên mới được lưu trong collection `users`.
+- Nếu cung cấp mật khẩu, tài khoản Firebase Auth được khởi tạo và liên kết với hồ sơ.
+- Lịch sử thao tác ghi nhận sự kiện tạo nhân viên.
+
+**Luồng cơ bản:**
+
+1. Người dùng mở trang “Thêm nhân viên”.
+2. Hệ thống hiển thị wizard 3 bước (Thông tin cơ bản → Công việc → Bổ sung).
+3. Người dùng nhập thông tin từng bước, chuyển bước kế tiếp.
+4. Ở bước hoàn tất, hệ thống yêu cầu nhập mật khẩu hành động.
+5. Người dùng cung cấp mật khẩu hành động và xác nhận lưu.
+6. Hệ thống xác thực mật khẩu hành động.
+7. Hệ thống tạo tài khoản Firebase Auth (nếu khai báo thông tin truy cập).
+8. Hệ thống lưu hồ sơ vào `users`, gắn metadata `createdBy`.
+9. Hệ thống thông báo thành công và chuyển đến danh sách nhân viên.
+
+**Luồng thay thế:**
+
+- **3a. Thiếu/ sai dữ liệu:** Hệ thống hiển thị lỗi và yêu cầu chỉnh sửa trước khi tiếp tục.
+- **4a. Từ chối nhập mật khẩu hành động:** Người dùng hủy thao tác, hệ thống không lưu dữ liệu.
+- **6a. Mật khẩu hành động sai:** Hệ thống hiển thị cảnh báo và cho phép nhập lại tối đa 3 lần.
+- **7a. Email đã tồn tại:** Hệ thống báo lỗi và quay về bước thông tin cơ bản.
+
+**Quy tắc nghiệp vụ:**
+
+- Mã nhân viên (`employeeId`) phải duy nhất trong tổ chức.
+- Vai trò được chọn phải nằm trong danh sách `UserRole` đã định nghĩa.
+- Không được phép tạo nhân viên ở trạng thái “inactive” nếu chưa có ngày bắt đầu làm việc.
+
+**Yêu cầu phi chức năng:**
+
+- Thao tác lưu hoàn tất trong < 5 giây.
+- Form hỗ trợ lưu nháp cục bộ khi trình duyệt bị làm mới.
+- Validation hiển thị rõ ràng, hỗ trợ trợ năng (ARIA) cho người dùng đặc biệt.
+
+---
+
+#### 3.3.4. UC08: Thêm thiết bị vào kho
+
+**Use Case ID:** UC08
+
+**Tên Use Case:** Thêm thiết bị vào kho
+
+**Mô tả:** Người dùng tạo hồ sơ thiết bị mới và lưu vào kho (warehouse), bao gồm thông tin kỹ thuật, giá mua, nhà cung cấp và thông tin bảo trì ban đầu.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý, Kỹ thuật viên
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập.
+- Người dùng có quyền `canManageWarehouse`.
+
+**Điều kiện sau:**
+
+- Thiết bị mới được lưu trong collection `warehouse`.
+- Vị trí (`location`) mặc định được đặt là "Kho".
+- Trạng thái (`status`) có thể là `active`, `maintenance`, `broken`, hoặc `retired` (tùy theo tình trạng thiết bị khi nhập kho).
+- Số liệu thống kê liên quan (Dashboard, báo cáo) được cập nhật ở lần đồng bộ kế tiếp.
+
+**Luồng cơ bản:**
+
+1. Người dùng mở trang "Thêm thiết bị vào kho".
+2. Hệ thống hiển thị wizard 3 bước (Thông tin cơ bản → Chi tiết → Bảo trì & thông tin kho).
+3. Người dùng nhập dữ liệu và chuyển bước:
+   - Bước 1: Thông tin cơ bản (tên, mã, danh mục, thương hiệu, model, serial number).
+   - Bước 2: Thông tin chi tiết (mô tả, thông số kỹ thuật, giá mua, nhà cung cấp, ngày mua, hết hạn bảo hành).
+   - Bước 3: Thông tin bảo trì (lịch bảo trì, ngày bảo trì cuối, ngày bảo trì tiếp theo, ghi chú).
+4. Hệ thống kiểm tra tính duy nhất của mã thiết bị trong cả `warehouse` và `devices`.
+5. Người dùng xác nhận lưu.
+6. Hệ thống tự động gán `location = "Kho"`.
+7. Hệ thống ghi thiết bị vào collection `warehouse` với trạng thái đã chọn (thường là `active` cho thiết bị mới), kèm metadata `createdBy`, `createdByName`.
+8. Hệ thống hiển thị thông báo thành công và điều hướng về danh sách thiết bị trong kho.
+
+**Luồng thay thế:**
+
+- **3a. Dữ liệu thiếu:** Hệ thống đánh dấu trường lỗi và yêu cầu bổ sung, không cho phép chuyển bước tiếp theo.
+- **4a. Trùng mã thiết bị:** Hệ thống hiển thị cảnh báo "Mã thiết bị đã tồn tại trong kho hoặc đang sử dụng" và yêu cầu nhập mã khác.
+
+**Quy tắc nghiệp vụ:**
+
+- Mỗi thiết bị phải thuộc một danh mục (`category`) hợp lệ.
+- Mã thiết bị (`code`) phải duy nhất trong toàn hệ thống (cả `warehouse` và `devices`).
+- Thiết bị mới thêm vào kho luôn có vị trí `location = "Kho"`.
+- Trạng thái (`status`) của thiết bị trong kho sử dụng các giá trị: `active` (đang hoạt động), `maintenance` (cần bảo trì), `broken` (đã hỏng), hoặc `retired` (thanh lý). Thiết bị mới thường có trạng thái `active`.
+- Sau khi thêm vào kho, thiết bị có thể được chuyển sang sử dụng thông qua chức năng "Chuyển thiết bị từ kho sang sử dụng" (UC17).
+
+**Yêu cầu phi chức năng:**
+
+- Form hỗ trợ upload ảnh thiết bị tối đa 5 MB/ảnh.
+- Thao tác lưu phải đảm bảo idempotent (tránh tạo trùng khi người dùng double-click).
+- Toàn bộ thao tác tuân thủ chuẩn truy cập WCAG 2.1 AA.
+- Hệ thống phải kiểm tra mã thiết bị trong cả hai collection (`warehouse` và `devices`) để đảm bảo tính duy nhất.
+
+---
+
+#### 3.3.5. UC17: Chuyển thiết bị từ kho sang sử dụng
+
+**Use Case ID:** UC17
+
+**Tên Use Case:** Chuyển thiết bị từ kho sang sử dụng
+
+**Mô tả:** Người có quyền chuyển thiết bị từ collection `warehouse` sang collection `devices`, cập nhật trạng thái và thông tin sử dụng. Chức năng này nằm trong module "Quản lý thiết bị".
+
+**Tác nhân (Actor):** Tất cả Actor (Lãnh đạo, Quản lý, Nhân viên, Kỹ thuật viên)
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập và có quyền `canManageDevices`.
+- Thiết bị đang tồn tại trong collection `warehouse`.
+
+**Điều kiện sau:**
+
+- Thiết bị được ghi nhận trong collection `devices` với đầy đủ thông tin sử dụng.
+- Bản ghi tương ứng trong `warehouse` bị xóa (thiết bị được chuyển hoàn toàn sang `devices`).
+- Lịch sử thao tác ghi lại sự kiện chuyển kho.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang "Quản lý thiết bị".
+2. Người dùng chọn nút "Thêm từ kho" hoặc tương tự để xem danh sách thiết bị trong kho.
+3. Hệ thống hiển thị danh sách thiết bị trong `warehouse`.
+4. Người dùng chọn thiết bị cần chuyển sang sử dụng.
+5. Hệ thống hiển thị dialog chọn phòng ban để gán thiết bị.
+6. Người dùng chọn phòng ban và xác nhận "Chuyển sang sử dụng".
+7. Hệ thống validate dữ liệu và kiểm tra thiết bị còn tồn tại trong kho.
+8. Hệ thống tạo bản ghi mới trong `devices`, sao chép thông tin từ `warehouse` và cập nhật:
+   - `location`: Thay đổi từ "Kho" sang vị trí sử dụng
+   - `department`: Phòng ban đã chọn
+   - `createdBy`, `createdByName`: Người thực hiện chuyển
+9. Hệ thống xóa bản ghi trong `warehouse`.
+10. Hệ thống thông báo thành công và cập nhật danh sách thiết bị.
+
+**Luồng thay thế:**
+
+- **5a. Thiết bị đang bị khóa kiểm kê:** Hệ thống hiển thị thông báo và không cho phép chuyển.
+- **6a. Người dùng hủy thao tác:** Hệ thống đóng form, không thay đổi dữ liệu.
+
+**Quy tắc nghiệp vụ:**
+
+- Mỗi lần chuyển phải gắn với phòng ban hoặc kho sử dụng cụ thể.
+- Nếu chuyển cho phòng ban, phải gán `assignedDepartmentId` và `location`.
+- Các thông tin lịch bảo trì sẽ được khởi tạo theo chính sách mặc định cho thiết bị mới sử dụng.
+
+**Yêu cầu phi chức năng:**
+
+- Thời gian chuyển không vượt quá 5 giây kể cả khi kèm hình ảnh/thông tin chi tiết.
+- Giao diện cho phép thao tác hàng loạt (bulk transfer) với tối đa 50 thiết bị/lần.
+- Ghi log thao tác đầy đủ để phục vụ truy vết.
+
+---
+
+#### 3.3.6. UC20: Cập nhật lịch sử bảo trì
+
+**Use Case ID:** UC20
+
+**Tên Use Case:** Cập nhật lịch sử bảo trì thiết bị
+
+**Mô tả:** Người có quyền bảo trì cập nhật thông tin bảo trì định kỳ hoặc khẩn cấp cho thiết bị, đồng thời điều chỉnh trạng thái thiết bị.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý, Kỹ thuật viên
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập và có quyền `canManageMaintenance`.
+- Thiết bị tồn tại trong collection `devices` hoặc `warehouse`.
+- Lịch trình bảo trì đối với thiết bị đã được thiết lập.
+
+**Điều kiện sau:**
+
+- Bản ghi bảo trì mới được thêm vào sub-collection `maintenanceHistory` (nếu có) hoặc trường `maintenanceRecords`.
+- Thiết bị cập nhật lại các trường `lastMaintenance`, `nextMaintenance`, `status`.
+- Hệ thống gửi thông báo (nếu cấu hình) đến các bên liên quan.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang “Quản lý bảo trì”.
+2. Người dùng chọn thiết bị cần cập nhật bảo trì.
+3. Hệ thống hiển thị dialog nhập thông tin bảo trì (ngày thực hiện, hạng mục, kết quả, chi phí, ghi chú).
+4. Người dùng nhập thông tin, chọn trạng thái thiết bị sau bảo trì và nhấn “Cập nhật”.
+5. Hệ thống validate dữ liệu (ngày, nội dung bắt buộc).
+6. Hệ thống ghi lịch sử bảo trì vào Firestore và cập nhật trạng thái thiết bị.
+7. Hệ thống tính toán và cập nhật `nextMaintenance` dựa trên chu kỳ hoặc hướng dẫn kỹ thuật.
+8. Hệ thống thông báo thành công, làm mới danh sách.
+
+**Luồng thay thế:**
+
+- **5a. Dữ liệu thiếu:** Hệ thống hiển thị lỗi và yêu cầu nhập lại.
+- **7a. Không có lịch bảo trì tiếp theo:** Hệ thống yêu cầu người dùng xác định thủ công ngày bảo trì tiếp theo.
+
+**Quy tắc nghiệp vụ:**
+
+- Các hạng mục bảo trì phải tuân theo checklist chuẩn của từng loại thiết bị.
+- Nếu trạng thái sau bảo trì là `broken` hoặc `retired`, hệ thống bắt buộc yêu cầu nguyên nhân và đề xuất xử lý.
+- Một thiết bị không được ghi nhận hai lần bảo trì trong cùng một ngày nếu không có lý do đặc biệt (phải nhập ghi chú).
+
+**Yêu cầu phi chức năng:**
+
+- Hệ thống phải hỗ trợ đính kèm hình ảnh/tài liệu tối đa 10 MB mỗi lần cập nhật.
+- Thời gian lưu và cập nhật bảo trì phải < 7 giây.
+- Toàn bộ lịch sử bảo trì phải xem được offline (cache cục bộ) đối với ứng dụng mobile (nếu áp dụng).
+
+---
+
+#### 3.3.7. UC21: Mượn thiết bị
+
+**Use Case ID:** UC21
+
+**Tên Use Case:** Mượn thiết bị
+
+**Mô tả:** Người dùng có thẩm quyền tạo phiếu mượn và gán thiết bị cho người mượn trong một khoảng thời gian xác định.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý, Nhân viên
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập và có quyền `canBorrowDevices`.
+- Thiết bị được chọn ở trạng thái cho phép mượn (không bị khóa, không đang bảo trì).
+
+**Điều kiện sau:**
+
+- Bản ghi mượn thiết bị được lưu tại collection `borrowRecords` với trạng thái `borrowed`.
+- Thiết bị được cập nhật trường `assignedTo`, `assignedToName`, `borrowStatus`.
+- Lịch sử hoạt động ghi nhận thao tác mượn.
+
+**Luồng cơ bản:**
+
+1. Người dùng mở trang “Mượn thiết bị”.
+2. Hệ thống hiển thị danh sách thiết bị khả dụng, hỗ trợ lọc/tìm kiếm.
+3. Người dùng chọn thiết bị và điền thông tin mượn (mục đích, ngày mượn, ngày trả dự kiến).
+4. Người dùng xác nhận tạo phiếu.
+5. Hệ thống kiểm tra trạng thái thiết bị và validate dữ liệu.
+6. Hệ thống tạo record trong `borrowRecords`.
+7. Hệ thống cập nhật thiết bị tương ứng (`assignedTo`, `status`, `location` nếu lấy từ kho).
+8. Hệ thống thông báo thành công và điều hướng về danh sách phiếu mượn.
+
+**Luồng thay thế:**
+
+- **3a. Thiết bị thuộc kho (`warehouse`):** Hệ thống tự động chuyển trạng thái sang `in_use` và cập nhật `location` theo phòng ban người mượn.
+- **5a. Thiết bị đang được mượn:** Hệ thống từ chối, hiển thị thông báo và yêu cầu chọn thiết bị khác.
+- **5b. Người dùng hủy thao tác:** Hệ thống đóng form, không lưu dữ liệu.
+
+**Quy tắc nghiệp vụ:**
+
+- Mỗi người dùng không được mượn quá số thiết bị tối đa do lãnh đạo cấu hình (trường `maxBorrowDevices` nếu có).
+- Thời hạn mượn mặc định tối đa 30 ngày, vượt quá phải có phê duyệt của lãnh đạo.
+- Các trường thông tin bắt buộc: thiết bị, mục đích, ngày trả dự kiến.
+
+**Yêu cầu phi chức năng:**
+
+- Hỗ trợ tạo phiếu mượn trên thiết bị di động.
+- Đảm bảo thao tác tạo phiếu thành công kể cả khi danh sách thiết bị lớn (phân trang phía server).
+- Ghi log thao tác để phục vụ truy vết sự cố.
+
+---
+
+#### 3.3.6. UC22: Trả thiết bị
+
+**Use Case ID:** UC22
+
+**Tên Use Case:** Trả thiết bị
+
+**Mô tả:** Người dùng xác nhận hoàn trả thiết bị, cập nhật trạng thái phiếu mượn và giải phóng thiết bị khỏi người mượn.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý, Nhân viên
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập và có quyền `canBorrowDevices`.
+- Phiếu mượn tồn tại và đang ở trạng thái `borrowed`.
+
+**Điều kiện sau:**
+
+- Phiếu mượn chuyển trạng thái thành `returned` hoặc `overdue`.
+- Thiết bị được cập nhật trạng thái phù hợp (giải phóng `assignedTo` nếu cần).
+- Lịch sử hoạt động ghi nhận thao tác trả thiết bị.
+
+**Luồng cơ bản:**
+
+1. Người dùng mở danh sách phiếu mượn.
+2. Người dùng chọn phiếu trạng thái `borrowed` và nhấn “Trả thiết bị”.
+3. Hệ thống hiển thị hộp thoại xác nhận.
+4. Người dùng xác nhận trả.
+5. Hệ thống cập nhật phiếu mượn (`returnDate`, `status`, `updatedBy`).
+6. Hệ thống cập nhật thiết bị (`assignedTo`, `status`, `location` nếu trả về kho).
+7. Hệ thống thông báo thành công và cập nhật danh sách phiếu mượn.
+
+**Luồng thay thế:**
+
+- **3a. Người dùng hủy:** Hệ thống đóng hộp thoại và không thay đổi dữ liệu.
+- **6a. Thiết bị trả về kho:** Hệ thống tự động chuyển thiết bị sang collection `warehouse` hoặc cập nhật trạng thái `warehouse_transfer`.
+
+**Quy tắc nghiệp vụ:**
+
+- Nếu quá hạn (ngày trả thực tế > ngày dự kiến), hệ thống gắn cờ `overdue` và gửi thông báo cho lãnh đạo.
+- Chỉ người tạo phiếu hoặc cấp trên trực tiếp mới được phép xác nhận trả.
+- Khi trả thiết bị hỏng, phải ghi chú tình trạng vào phiếu trước khi hoàn tất.
+
+**Yêu cầu phi chức năng:**
+
+- Thao tác trả thiết bị phải an toàn trước việc reload trang (sử dụng optimistic update + rollback khi thất bại).
+- Thông báo kết quả hiển thị trong vòng 2 giây sau khi cập nhật.
+- Giao diện đáp ứng tốt trên màn hình nhỏ (≥ 360px).
+
+---
+
+#### 3.3.7. UC24: Xem báo cáo tổng hợp
+
+**Use Case ID:** UC24
+
+**Tên Use Case:** Xem báo cáo tổng hợp
+
+**Mô tả:** Người dùng truy cập báo cáo tổng quan hệ thống, xem biểu đồ và xuất dữ liệu ra các định dạng PDF/Excel.
+
+**Tác nhân (Actor):** Tất cả Actor
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập.
+
+**Điều kiện sau:**
+
+- Báo cáo hiển thị đầy đủ với dữ liệu cập nhật.
+- File PDF/Excel được tải về nếu người dùng yêu cầu xuất.
+
+**Luồng cơ bản:**
+
+1. Người dùng mở trang “Báo cáo tổng hợp”.
+2. Hệ thống tải dữ liệu từ `devices`, `warehouse`, `borrowRecords`, `users`.
+3. Hệ thống tổng hợp và hiển thị card thống kê, biểu đồ.
+4. Người dùng tương tác xem chi tiết, lọc theo thời gian/phòng ban (nếu có).
+5. Người dùng chọn “Xuất Excel” hoặc “Xuất PDF”.
+6. Hệ thống tạo file theo định dạng tương ứng và cung cấp liên kết tải xuống.
+
+**Luồng thay thế:**
+
+- **2a. Lỗi tải dữ liệu:** Hệ thống hiển thị thông báo và cho phép tải lại; các thành phần hiển thị trạng thái rỗng.
+- **5a. Người dùng hủy xuất:** Hệ thống dừng quá trình tạo file.
+
+**Quy tắc nghiệp vụ:**
+
+- Chỉ thống kê dữ liệu trong phạm vi tổ chức; nếu muốn lọc theo phòng ban, người dùng phải có quyền phù hợp.
+- Dữ liệu báo cáo sử dụng thông tin thời gian thực (không lưu trữ bảng báo cáo cố định).
+- Khi xuất file, tên file phải bao gồm ngày giờ và loại báo cáo để dễ truy vết.
+
+**Yêu cầu phi chức năng:**
+
+- Việc tạo file PDF/Excel phải hoàn tất trong < 10 giây với 10.000 bản ghi.
+- File xuất ra tương thích với Excel 2016 trở lên và đọc tốt trên thiết bị di động.
+- Giao diện báo cáo hỗ trợ dark mode và in ấn.
+
+---
+
+#### 3.3.8. UC29: Quản lý mật khẩu hành động
+
+**Use Case ID:** UC29
+
+**Tên Use Case:** Quản lý mật khẩu hành động
+
+**Mô tả:** Lãnh đạo thiết lập, thay đổi hoặc đặt lại mật khẩu bảo vệ các tác vụ quan trọng trong hệ thống.
+
+**Tác nhân (Actor):** Lãnh đạo (Director, Deputy Director)
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập.
+- Quyền `canManageActionPassword = true`.
+
+**Điều kiện sau:**
+
+- Mật khẩu hành động được lưu/ cập nhật tại collection `settings`.
+- Thông tin cập nhật hiển thị tức thì trên giao diện và đồng bộ cho các tác vụ khác.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang “Quản lý mật khẩu hành động”.
+2. Hệ thống xác nhận quyền truy cập.
+3. Hệ thống hiển thị trạng thái hiện tại và form thay đổi.
+4. Người dùng chọn thao tác:
+   - Thay đổi mật khẩu: nhập mật khẩu mới + xác nhận.
+   - Đặt lại mật khẩu: yêu cầu xóa/ làm rỗng.
+5. Hệ thống validate mật khẩu (độ dài, ký tự).
+6. Hệ thống ghi nhận thay đổi vào `settings/global`.
+7. Hệ thống hiển thị thông báo thành công.
+
+**Luồng thay thế:**
+
+- **2a. Không đủ quyền:** Hệ thống hiển thị cảnh báo và điều hướng về Dashboard.
+- **5a. Mật khẩu mới không đạt chuẩn:** Hệ thống thông báo yêu cầu nhập lại (độ dài tối thiểu 6 ký tự, có chữ và số).
+- **4a. Người dùng hủy thao tác:** Hệ thống giữ nguyên mật khẩu hiện tại.
+
+**Quy tắc nghiệp vụ:**
+
+- Chỉ Director/Deputy Director mới được phép thay đổi mật khẩu hành động.
+- Mật khẩu phải được mã hóa trước khi lưu (Hash + Pepper) theo cấu hình bảo mật.
+- Sau khi thay đổi mật khẩu, hệ thống gửi thông báo nội bộ cho các quản lý liên quan.
+
+**Yêu cầu phi chức năng:**
+
+- Thao tác thay đổi phải thực hiện qua kết nối HTTPS và không log mật khẩu dạng rõ.
+- Form phải ẩn ký tự mật khẩu và hỗ trợ hiển thị/ẩn tùy chọn.
+- Thời gian cập nhật tối đa 2 giây; nếu vượt, hệ thống phải rollback và thông báo lỗi.
+
+---
+
+#### 3.3.9. UC31: Quản lý thông báo nội bộ
+
+**Use Case ID:** UC31
+
+**Tên Use Case:** Quản lý thông báo nội bộ
+
+**Mô tả:** Người quản trị tạo, chỉnh sửa, phân loại và gửi thông báo/h cảnh báo đến các nhóm người dùng trong hệ thống.
+
+**Tác nhân (Actor):** Lãnh đạo, Quản lý
+
+**Điều kiện tiên quyết:**
+
+- Người dùng đã đăng nhập và có quyền `canManageNotifications`.
+- Module thông báo đã cấu hình các kênh nhận (email, trong ứng dụng, SMS nếu có).
+
+**Điều kiện sau:**
+
+- Thông báo mới được lưu trong collection `notifications` với trạng thái, ưu tiên và phạm vi áp dụng.
+- Người nhận phù hợp nhận được thông báo (qua real-time listener hoặc dịch vụ gửi thông báo).
+- Lịch sử gửi thông báo được cập nhật.
+
+**Luồng cơ bản:**
+
+1. Người dùng truy cập trang “Quản lý thông báo”.
+2. Người dùng chọn “Tạo thông báo mới”.
+3. Hệ thống hiển thị form nhập tiêu đề, nội dung, loại thông báo, mức độ ưu tiên, nhóm nhận (toàn bộ, theo vai trò, theo phòng ban) và tùy chọn gửi kèm liên kết/tài liệu.
+4. Người dùng nhập thông tin, chọn kênh gửi và nhấn “Gửi”.
+5. Hệ thống validate dữ liệu (tiêu đề, nội dung, nhóm nhận).
+6. Hệ thống lưu thông báo vào `notifications`, gắn metadata (`createdBy`, `createdAt`, `targets`).
+7. Hệ thống kích hoạt dịch vụ gửi thông báo (Firebase Cloud Messaging/Email).
+8. Hệ thống hiển thị thông báo thành công và cập nhật danh sách.
+
+**Luồng thay thế:**
+
+- **2a. Chỉnh sửa thông báo:** Người dùng chọn thông báo nháp hoặc chưa gửi, cập nhật nội dung rồi lưu.
+- **3a. Chọn lịch gửi:** Người dùng đặt lịch gửi (schedule) → hệ thống lưu trạng thái `scheduled` và thiết lập trigger.
+- **4a. Người dùng lưu nháp:** Hệ thống lưu trạng thái `draft`, chưa gửi thông báo.
+
+**Quy tắc nghiệp vụ:**
+
+- Thông báo mức độ “Khẩn” phải được duyệt bởi Director trước khi gửi (workflow phê duyệt).
+- Thông báo phải hỗ trợ gắn tag module (devices, maintenance, borrow) để người nhận lọc được.
+- Hệ thống lưu trữ tối thiểu 12 tháng lịch sử thông báo để tra cứu.
+
+**Yêu cầu phi chức năng:**
+
+- Giao diện tạo thông báo phải hỗ trợ soạn thảo rich text cơ bản.
+- Thời gian gửi thông báo đồng thời đến 500 người dùng không vượt quá 15 giây.
+- Hệ thống hỗ trợ đa ngôn ngữ cho nội dung thông báo nếu cấu hình.
+
 ---
 
 ## SƠ ĐỒ QUAN HỆ (ERD) - ĐẦY ĐỦ
