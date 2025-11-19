@@ -1387,7 +1387,7 @@ export default function UsersPage() {
                           Thông tin liên hệ
                         </TableCell>
                         <TableCell sx={{ fontWeight: "bold" }}>
-                          Phòng ban & Chức vụ
+                          Phòng ban
                         </TableCell>
                         <TableCell sx={{ fontWeight: "bold" }}>
                           Trạng thái & Vai trò
@@ -1467,34 +1467,20 @@ export default function UsersPage() {
                               </Box>
                             </TableCell>
                             <TableCell>
-                              <Box>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                    mb: 0.5,
-                                  }}
-                                >
-                                  <BusinessIcon
-                                    fontSize="small"
-                                    color="action"
-                                  />
-                                  {user.department}
-                                </Typography>
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 1,
-                                  }}
-                                >
-                                  <WorkIcon fontSize="small" color="action" />
-                                  {user.position}
-                                </Typography>
-                              </Box>
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                <BusinessIcon
+                                  fontSize="small"
+                                  color="action"
+                                />
+                                {user.department}
+                              </Typography>
                             </TableCell>
                             <TableCell>
                               <Box

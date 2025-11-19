@@ -24,7 +24,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Drawer,
   useTheme,
   TextField,
 } from "@mui/material";
@@ -93,7 +92,6 @@ export default function UserDetailPage() {
     "new" | "delete" | "edit" | null
   >(null);
 
-  // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useMediaQuery(theme.breakpoints.down("lg"));
   const [devicesMenuOpen, setDevicesMenuOpen] = useState(false);
@@ -114,7 +112,6 @@ export default function UserDetailPage() {
     if (pathname.startsWith("/users")) setUsersMenuOpen(true);
   }, [pathname]);
 
-  // Load current user's role to control access to password management
   useEffect(() => {
     (async () => {
       try {
@@ -133,7 +130,6 @@ export default function UserDetailPage() {
     router.push("/login");
   };
 
-  // Tải thông tin nhân viên
   useEffect(() => {
     if (userId) {
       loadUser();
@@ -149,16 +145,13 @@ export default function UserDetailPage() {
     }
   };
 
-  // Xử lý xóa nhân viên
   const handleDeleteUser = () => {
     setDeleteDialogOpen(true);
   };
 
-  // Xác nhận xóa nhân viên
   const confirmDeleteUser = async () => {
     if (user) {
       try {
-        // First ask for action password
         setActionPwd("");
         setActionPwdError("");
         setPendingAction("delete");
@@ -217,7 +210,6 @@ export default function UserDetailPage() {
     setActionPwdOpen(true);
   };
 
-  // Lấy màu cho trạng thái
   const getStatusColor = (status: string) => {
     switch (status) {
       case "active":
@@ -231,7 +223,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Lấy màu cho vai trò
   const getRoleColor = (role: string) => {
     switch (role) {
       case "director":
@@ -249,7 +240,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Lấy text hiển thị cho trạng thái
   const getStatusText = (status: string) => {
     switch (status) {
       case "active":
@@ -263,7 +253,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Lấy text hiển thị cho vai trò
   const getRoleText = (role: string) => {
     switch (role) {
       case "director":
@@ -281,7 +270,6 @@ export default function UserDetailPage() {
     }
   };
 
-  // Format ngày
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN", {
       year: "numeric",
@@ -290,7 +278,6 @@ export default function UserDetailPage() {
     });
   };
 
-  // Format ngày ngắn gọn
   const formatDateShort = (dateString: string) => {
     return new Date(dateString).toLocaleDateString("vi-VN");
   };
@@ -558,8 +545,7 @@ export default function UserDetailPage() {
             zIndex: 1000,
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
-        >
-        </Box>
+        ></Box>
 
         <Container maxWidth="lg" sx={{ py: 4 }}>
           {/* Header */}
@@ -608,7 +594,7 @@ export default function UserDetailPage() {
                     {user.fullName}
                   </Typography>
                   <Typography variant="h6" color="text.secondary" gutterBottom>
-                    {user.position}
+                    {getRoleText(user.role)}
                   </Typography>
                   <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
                     <Chip
@@ -621,8 +607,9 @@ export default function UserDetailPage() {
                       color={getStatusColor(user.status) as any}
                     />
                     <Chip
-                      label={getRoleText(user.role)}
-                      color={getRoleColor(user.role) as any}
+                      label={user.department}
+                      color="primary"
+                      variant="outlined"
                     />
                   </Box>
                 </Box>
@@ -711,11 +698,11 @@ export default function UserDetailPage() {
                     </ListItem>
                     <ListItem>
                       <ListItemIcon>
-                        <PersonIcon color="action" />
+                        <SecurityIcon color="action" />
                       </ListItemIcon>
                       <ListItemText
-                        primary="Chức vụ"
-                        secondary={user.position}
+                        primary="Vai trò"
+                        secondary={getRoleText(user.role)}
                       />
                     </ListItem>
                     <ListItem>
@@ -727,22 +714,12 @@ export default function UserDetailPage() {
                         secondary={formatDate(user.startDate)}
                       />
                     </ListItem>
-                    <ListItem>
-                      <ListItemIcon>
-                        <SecurityIcon color="action" />
-                      </ListItemIcon>
-                      <ListItemText
-                        primary="Vai trò"
-                        secondary={getRoleText(user.role)}
-                      />
-                    </ListItem>
                   </List>
                 </Box>
               </Box>
             </CardContent>
           </Card>
 
-          {/* Thông tin bổ sung */}
           <Box
             sx={{
               display: "grid",
@@ -750,7 +727,6 @@ export default function UserDetailPage() {
               gap: 4,
             }}
           >
-            {/* Kỹ năng chuyên môn */}
             {user.skills && user.skills.length > 0 && (
               <Box>
                 <Card>
@@ -778,7 +754,6 @@ export default function UserDetailPage() {
               </Box>
             )}
 
-            {/* Thông tin liên hệ khẩn cấp */}
             {user.emergencyContact && user.emergencyContact.name && (
               <Box>
                 <Card>
@@ -817,7 +792,6 @@ export default function UserDetailPage() {
             )}
           </Box>
 
-          {/* Ghi chú */}
           {user.notes && (
             <Box sx={{ mt: 4 }}>
               <Card>
@@ -838,7 +812,6 @@ export default function UserDetailPage() {
             </Box>
           )}
 
-          {/* Thông tin hệ thống */}
           <Card sx={{ mt: 4 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -866,7 +839,6 @@ export default function UserDetailPage() {
             </CardContent>
           </Card>
 
-          {/* Dialog xác nhận xóa */}
           <Dialog
             open={deleteDialogOpen}
             onClose={() => setDeleteDialogOpen(false)}
@@ -893,7 +865,6 @@ export default function UserDetailPage() {
             </DialogActions>
           </Dialog>
 
-          {/* Action password dialog */}
           <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
             <DialogTitle>Xác nhận mật khẩu</DialogTitle>
             <DialogContent>

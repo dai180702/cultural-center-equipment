@@ -27,6 +27,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Menu,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {
@@ -62,6 +63,13 @@ import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { DEFAULT_DEPARTMENTS } from "@/lib/departments";
 import { useAuth } from "@/contexts/AuthContext";
+import { getUserByEmail } from "@/services/users";
+import {
+  getAllProvinces,
+  getDistrictsByProvince,
+  parseAddress,
+  formatAddress,
+} from "@/data/vietnam-provinces";
 
 const steps = ["Thông tin cơ bản", "Thông tin công việc", "Thông tin bổ sung"];
 
@@ -111,8 +119,17 @@ export default function NewUserPage() {
   const [actionPwd, setActionPwd] = useState("");
   const [actionPwdError, setActionPwdError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
-  // Cập nhật sidebar khi thay đổi kích thước màn hình
+  // State cho menu tìm kiếm địa chỉ
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [provinceAnchorEl, setProvinceAnchorEl] = useState<null | HTMLElement>(null);
+  const [districtAnchorEl, setDistrictAnchorEl] = useState<null | HTMLElement>(null);
+  const [provinceSearchTerm, setProvinceSearchTerm] = useState("");
+  const [districtSearchTerm, setDistrictSearchTerm] = useState("");
+
   useEffect(() => {
     if (isMobile) {
       setSidebarOpen(false);
@@ -121,7 +138,6 @@ export default function NewUserPage() {
     }
   }, [isMobile]);
 
-  // Tự động mở menu tương ứng theo đường dẫn hiện tại
   useEffect(() => {
     if (!pathname) return;
     if (pathname.startsWith("/users")) {
@@ -141,6 +157,52 @@ export default function NewUserPage() {
   const handleInputChange = (field: string, value: any) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (errors[field]) setErrors((prev) => ({ ...prev, [field]: "" }));
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvince(province);
+    const districts = getDistrictsByProvince(province);
+    setAvailableDistricts(districts);
+    
+    if (selectedDistrict && !districts.includes(selectedDistrict)) {
+      setSelectedDistrict("");
+      handleInputChange("address", formatAddress(province, ""));
+    } else {
+      handleInputChange("address", formatAddress(province, selectedDistrict));
+    }
+  };
+
+  const handleDistrictChange = (district: string) => {
+    setSelectedDistrict(district);
+    handleInputChange("address", formatAddress(selectedProvince, district));
+  };
+
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return false;
+    }
+    try {
+      setCheckingEmail(true);
+      const existingUser = await getUserByEmail(email);
+      return existingUser !== null;
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra email:", error);
+      return false;
+    } finally {
+      setCheckingEmail(false);
+    }
+  };
+
+  const handleEmailBlur = async () => {
+    if (
+      formData.email.trim() &&
+      /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)
+    ) {
+      const exists = await checkEmailExists(formData.email);
+      if (exists) {
+        setErrors((prev) => ({ ...prev, email: "Email đã được sử dụng" }));
+      }
+    }
   };
 
   const handleEmergencyContactChange = (field: string, value: string) => {
@@ -166,14 +228,22 @@ export default function NewUserPage() {
     }));
   };
 
-  const validateStep = (step: number) => {
+  const validateStep = async (step: number): Promise<boolean> => {
     const next: Record<string, string> = {};
     if (step === 0) {
       if (!formData.employeeId.trim()) next.employeeId = "Bắt buộc";
       if (!formData.fullName.trim()) next.fullName = "Bắt buộc";
-      if (!formData.email.trim()) next.email = "Bắt buộc";
-      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email))
+      if (!formData.email.trim()) {
+        next.email = "Bắt buộc";
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
         next.email = "Email không hợp lệ";
+      } else {
+        // Kiểm tra email đã tồn tại
+        const emailExists = await checkEmailExists(formData.email);
+        if (emailExists) {
+          next.email = "Email đã được sử dụng";
+        }
+      }
       if (!formData.password.trim()) next.password = "Bắt buộc";
       else if (formData.password.length < 6)
         next.password = "Mật khẩu tối thiểu 6 ký tự";
@@ -194,16 +264,17 @@ export default function NewUserPage() {
     return Object.keys(next).length === 0;
   };
 
-  const handleNext = () => {
-    if (validateStep(activeStep)) setActiveStep((s) => s + 1);
+  const handleNext = async () => {
+    const isValid = await validateStep(activeStep);
+    if (isValid) setActiveStep((s) => s + 1);
   };
   const handleBack = () => setActiveStep((s) => s - 1);
 
   const performCreate = async () => {
-    // Prevent double submission
     if (isSubmitting) return;
-    if (!validateStep(activeStep)) return;
-    
+    const isValid = await validateStep(activeStep);
+    if (!isValid) return;
+
     setIsSubmitting(true);
     try {
       const cleanSkills = formData.skills.filter((s) => s.trim() !== "");
@@ -237,9 +308,8 @@ export default function NewUserPage() {
   };
 
   const handleConfirmActionPwd = async () => {
-    // Prevent double submission
     if (isSubmitting) return;
-    
+
     const { getAppSettings } = await import("@/services/settings");
     const settings = await getAppSettings();
     const expected = settings?.actionPassword || "";
@@ -274,7 +344,6 @@ export default function NewUserPage() {
         overflow: "hidden",
       }}
     >
-      {/* Tiêu đề */}
       <Box sx={{ mb: 4, flexShrink: 0 }}>
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           Quản lý Thiết bị
@@ -284,7 +353,6 @@ export default function NewUserPage() {
         </Typography>
       </Box>
 
-      {/* Hồ sơ người dùng */}
       <Box
         sx={{
           display: "flex",
@@ -325,7 +393,6 @@ export default function NewUserPage() {
         </Box>
       </Box>
 
-      {/* Menu điều hướng - Có thể cuộn */}
       <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Button
@@ -358,7 +425,6 @@ export default function NewUserPage() {
             Quản lý thiết bị
           </Button>
 
-          {/* Submenu Quản lý thiết bị */}
           {devicesMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -479,7 +545,6 @@ export default function NewUserPage() {
             Kho thiết bị
           </Button>
 
-          {/* Submenu Kho thiết bị */}
           {inventoryMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -568,7 +633,6 @@ export default function NewUserPage() {
             Lịch bảo trì
           </Button>
 
-          {/* Submenu Lịch bảo trì */}
           {maintenanceMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -655,7 +719,6 @@ export default function NewUserPage() {
             Báo cáo
           </Button>
 
-          {/* Submenu Báo cáo */}
           {reportsMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -744,7 +807,6 @@ export default function NewUserPage() {
             Quản lý nhân viên
           </Button>
 
-          {/* Submenu Quản lý nhân viên */}
           {usersMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -785,7 +847,6 @@ export default function NewUserPage() {
             Thông báo
           </Button>
 
-          {/* Submenu Thông báo */}
           {notificationsMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -856,7 +917,6 @@ export default function NewUserPage() {
             Cài đặt
           </Button>
 
-          {/* Submenu Cài đặt */}
           {settingsMenuOpen && (
             <Box sx={{ ml: 2, mb: 2 }}>
               <Button
@@ -979,8 +1039,6 @@ export default function NewUserPage() {
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
         >
-   
-
           <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
             <Typography
               variant="body2"
@@ -1070,8 +1128,12 @@ export default function NewUserPage() {
                       onChange={(e) =>
                         handleInputChange("email", e.target.value)
                       }
+                      onBlur={handleEmailBlur}
                       error={!!errors.email}
-                      helperText={errors.email}
+                      helperText={
+                        checkingEmail ? "Đang kiểm tra email..." : errors.email
+                      }
+                      disabled={checkingEmail}
                     />
                     <TextField
                       fullWidth
@@ -1112,17 +1174,306 @@ export default function NewUserPage() {
                       error={!!errors.phone}
                       helperText={errors.phone}
                     />
+                    {/* Địa chỉ với Tỉnh/TP và Phường/Xã */}
                     <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
-                      <TextField
-                        fullWidth
-                        label="Địa chỉ"
-                        value={formData.address}
-                        onChange={(e) =>
-                          handleInputChange("address", e.target.value)
-                        }
-                        multiline
-                        rows={2}
-                      />
+                      <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
+                        Địa chỉ
+                      </Typography>
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                          gap: 2,
+                        }}
+                      >
+                        {/* Tỉnh/Thành phố */}
+                        <Box>
+                          <TextField
+                            fullWidth
+                            label="Tỉnh/Thành phố"
+                            value={selectedProvince}
+                            onClick={(e) => {
+                              setProvinceAnchorEl(e.currentTarget);
+                              setProvinceSearchTerm("");
+                            }}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            placeholder="Chọn tỉnh/thành phố..."
+                            sx={{
+                              "& .MuiInputBase-root": {
+                                cursor: "pointer",
+                              },
+                            }}
+                          />
+                          <Menu
+                            anchorEl={provinceAnchorEl}
+                            open={Boolean(provinceAnchorEl)}
+                            onClose={() => setProvinceAnchorEl(null)}
+                            anchorOrigin={{
+                              vertical: "bottom",
+                              horizontal: "left",
+                            }}
+                            transformOrigin={{
+                              vertical: "top",
+                              horizontal: "left",
+                            }}
+                            PaperProps={{
+                              sx: {
+                                maxHeight: 300,
+                                width: provinceAnchorEl?.offsetWidth || 300,
+                                mt: 0.5,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                borderRadius: "4px",
+                                "& .MuiList-root": {
+                                  py: 0,
+                                  px: 0,
+                                },
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                p: 1.25,
+                                pb: 1,
+                                position: "sticky",
+                                top: 0,
+                                bgcolor: "#fff",
+                                zIndex: 1,
+                                borderBottom: "1px solid #e0e0e0",
+                              }}
+                            >
+                              <TextField
+                                fullWidth
+                                size="small"
+                                placeholder="Tìm kiếm..."
+                                value={provinceSearchTerm}
+                                onChange={(e) =>
+                                  setProvinceSearchTerm(e.target.value)
+                                }
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    backgroundColor: "#fff",
+                                    fontSize: "0.95rem",
+                                    "& input": {
+                                      py: 0.875,
+                                    },
+                                  },
+                                }}
+                              />
+                            </Box>
+                            {getAllProvinces()
+                              .filter((province) =>
+                                province
+                                  .toLowerCase()
+                                  .includes(provinceSearchTerm.toLowerCase())
+                              )
+                              .map((province) => (
+                                <MenuItem
+                                  key={province}
+                                  selected={province === selectedProvince}
+                                  onClick={() => {
+                                    handleProvinceChange(province);
+                                    setProvinceAnchorEl(null);
+                                    setProvinceSearchTerm("");
+                                  }}
+                                  sx={{
+                                    py: 1,
+                                    px: 2,
+                                    fontSize: "0.95rem",
+                                    minHeight: "40px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    "&.Mui-selected": {
+                                      bgcolor: "#d32f2f !important",
+                                      color: "#fff",
+                                      fontWeight: 500,
+                                      "&:hover": {
+                                        bgcolor: "#c62828 !important",
+                                      },
+                                    },
+                                    "&:hover": {
+                                      bgcolor: "#f5f5f5",
+                                    },
+                                  }}
+                                >
+                                  {province}
+                                </MenuItem>
+                              ))}
+                            {getAllProvinces().filter((province) =>
+                              province
+                                .toLowerCase()
+                                .includes(provinceSearchTerm.toLowerCase())
+                            ).length === 0 && (
+                              <MenuItem
+                                disabled
+                                sx={{
+                                  py: 1,
+                                  px: 2,
+                                  fontSize: "0.95rem",
+                                  minHeight: "40px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                Không tìm thấy
+                              </MenuItem>
+                            )}
+                          </Menu>
+                        </Box>
+
+                        {/* Phường/Xã */}
+                        <Box>
+                          <TextField
+                            fullWidth
+                            label="Phường/Xã"
+                            value={selectedDistrict}
+                            onClick={(e) => {
+                              if (selectedProvince) {
+                                setDistrictAnchorEl(e.currentTarget);
+                                setDistrictSearchTerm("");
+                              }
+                            }}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            disabled={!selectedProvince}
+                            placeholder={
+                              !selectedProvince
+                                ? "Chọn tỉnh/thành phố trước..."
+                                : "Chọn phường/xã..."
+                            }
+                            helperText={
+                              !selectedProvince
+                                ? "Vui lòng chọn tỉnh/thành phố trước"
+                                : ""
+                            }
+                            sx={{
+                              "& .MuiInputBase-root": {
+                                cursor: selectedProvince ? "pointer" : "default",
+                              },
+                            }}
+                          />
+                          <Menu
+                            anchorEl={districtAnchorEl}
+                            open={Boolean(districtAnchorEl)}
+                            onClose={() => setDistrictAnchorEl(null)}
+                            anchorOrigin={{
+                              vertical: "bottom",
+                              horizontal: "left",
+                            }}
+                            transformOrigin={{
+                              vertical: "top",
+                              horizontal: "left",
+                            }}
+                            PaperProps={{
+                              sx: {
+                                maxHeight: 300,
+                                width: districtAnchorEl?.offsetWidth || 300,
+                                mt: 0.5,
+                                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                borderRadius: "4px",
+                                "& .MuiList-root": {
+                                  py: 0,
+                                  px: 0,
+                                },
+                              },
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                p: 1.25,
+                                pb: 1,
+                                position: "sticky",
+                                top: 0,
+                                bgcolor: "#fff",
+                                zIndex: 1,
+                                borderBottom: "1px solid #e0e0e0",
+                              }}
+                            >
+                              <TextField
+                                fullWidth
+                                size="small"
+                                placeholder="Tìm kiếm..."
+                                value={districtSearchTerm}
+                                onChange={(e) =>
+                                  setDistrictSearchTerm(e.target.value)
+                                }
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                                sx={{
+                                  "& .MuiOutlinedInput-root": {
+                                    backgroundColor: "#fff",
+                                    fontSize: "0.95rem",
+                                    "& input": {
+                                      py: 0.875,
+                                    },
+                                  },
+                                }}
+                              />
+                            </Box>
+                            {availableDistricts
+                              .filter((district) =>
+                                district
+                                  .toLowerCase()
+                                  .includes(districtSearchTerm.toLowerCase())
+                              )
+                              .map((district) => (
+                                <MenuItem
+                                  key={district}
+                                  selected={district === selectedDistrict}
+                                  onClick={() => {
+                                    handleDistrictChange(district);
+                                    setDistrictAnchorEl(null);
+                                    setDistrictSearchTerm("");
+                                  }}
+                                  sx={{
+                                    py: 1,
+                                    px: 2,
+                                    fontSize: "0.95rem",
+                                    minHeight: "40px",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    "&.Mui-selected": {
+                                      bgcolor: "#d32f2f !important",
+                                      color: "#fff",
+                                      fontWeight: 500,
+                                      "&:hover": {
+                                        bgcolor: "#c62828 !important",
+                                      },
+                                    },
+                                    "&:hover": {
+                                      bgcolor: "#f5f5f5",
+                                    },
+                                  }}
+                                >
+                                  {district}
+                                </MenuItem>
+                              ))}
+                            {availableDistricts.filter((district) =>
+                              district
+                                .toLowerCase()
+                                .includes(districtSearchTerm.toLowerCase())
+                            ).length === 0 && (
+                              <MenuItem
+                                disabled
+                                sx={{
+                                  py: 1,
+                                  px: 2,
+                                  fontSize: "0.95rem",
+                                  minHeight: "40px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                }}
+                              >
+                                Không tìm thấy
+                              </MenuItem>
+                            )}
+                          </Menu>
+                        </Box>
+                      </Box>
                     </Box>
                   </Box>
                 )}
@@ -1356,7 +1707,9 @@ export default function NewUserPage() {
                         }
                         disabled={loading || isSubmitting}
                       >
-                        {loading || isSubmitting ? "Đang lưu..." : "Lưu nhân viên"}
+                        {loading || isSubmitting
+                          ? "Đang lưu..."
+                          : "Lưu nhân viên"}
                       </Button>
                     )}
                   </Box>
@@ -1366,7 +1719,7 @@ export default function NewUserPage() {
           </Container>
         </Box>
       </Box>
-      {/* Password confirmation dialog */}
+
       <Dialog open={actionPwdOpen} onClose={() => setActionPwdOpen(false)}>
         <DialogTitle>Xác nhận mật khẩu</DialogTitle>
         <DialogContent>
@@ -1389,11 +1742,13 @@ export default function NewUserPage() {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setActionPwdOpen(false)}>Hủy</Button>
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             onClick={handleConfirmActionPwd}
             disabled={isSubmitting || loading}
-            startIcon={isSubmitting || loading ? <CircularProgress size={20} /> : null}
+            startIcon={
+              isSubmitting || loading ? <CircularProgress size={20} /> : null
+            }
           >
             {isSubmitting || loading ? "Đang xử lý..." : "Xác nhận"}
           </Button>

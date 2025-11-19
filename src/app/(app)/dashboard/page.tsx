@@ -18,6 +18,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { getDevices, getDevicesByStatus } from "@/services/devices";
+import { getUsers } from "@/services/users";
 import {
   Home as HomeIcon,
   DevicesOther as DevicesIcon,
@@ -120,7 +121,6 @@ export default function Dashboard() {
     }
   }, [currentUser]);
 
-  // Tải thống kê thiết bị
   useEffect(() => {
     console.log("🚀 useEffect triggered - currentUser:", currentUser?.uid);
     if (currentUser) {
@@ -142,8 +142,8 @@ export default function Dashboard() {
       let maintenanceDevices: any[] = [];
       let brokenDevices: any[] = [];
       let retiredDevices: any[] = [];
+      let allUsers: any[] = [];
 
-      // Tải toàn bộ thiết bị trước
       try {
         allDevices = await getDevices();
         console.log("📱 Đã tải tất cả thiết bị:", allDevices);
@@ -152,7 +152,14 @@ export default function Dashboard() {
         allDevices = [];
       }
 
-      // Tải thiết bị đang hoạt động
+      try {
+        allUsers = await getUsers();
+        console.log("👥 Đã tải tất cả nhân viên:", allUsers);
+      } catch (error) {
+        console.error("❌ Lỗi khi tải nhân viên:", error);
+        allUsers = [];
+      }
+
       try {
         activeDevices = await getDevicesByStatus("active");
         console.log("✅ Đã tải thiết bị đang hoạt động:", activeDevices);
@@ -161,7 +168,6 @@ export default function Dashboard() {
         activeDevices = [];
       }
 
-      // Tải thiết bị cần bảo trì
       try {
         maintenanceDevices = await getDevicesByStatus("maintenance");
         console.log("🔧 Đã tải thiết bị cần bảo trì:", maintenanceDevices);
@@ -170,7 +176,6 @@ export default function Dashboard() {
         maintenanceDevices = [];
       }
 
-      // Tải thiết bị đã hỏng
       try {
         brokenDevices = await getDevicesByStatus("broken");
         console.log("❗ Đã tải thiết bị đã hỏng:", brokenDevices);
@@ -179,7 +184,6 @@ export default function Dashboard() {
         brokenDevices = [];
       }
 
-      // Tải thiết bị thanh lý
       try {
         retiredDevices = await getDevicesByStatus("retired");
         console.log("📦 Đã tải thiết bị thanh lý:", retiredDevices);
@@ -188,14 +192,12 @@ export default function Dashboard() {
         retiredDevices = [];
       }
 
-      // Tính số phòng ban duy nhất từ tất cả thiết bị
       const uniqueDepartments = new Set(
         allDevices
           .map((d: any) => (d?.department || "").trim())
           .filter((name: string) => Boolean(name))
       );
 
-      // Tính số thiết bị mới được thêm trong tháng này
       const today = new Date();
       const firstDayOfMonth = new Date(
         today.getFullYear(),
@@ -246,7 +248,7 @@ export default function Dashboard() {
         },
         {
           ...prev[6],
-          count: "25", // Số lượng nhân viên cố định (có thể thay đổi sau)
+          count: allUsers.length.toString(),
         },
         {
           ...prev[7],
@@ -257,27 +259,25 @@ export default function Dashboard() {
       console.log("✅ Cập nhật thống kê thành công!");
     } catch (error) {
       console.error("❌ Lỗi khi tải thống kê thiết bị:", error);
-      // Giữ nguyên thống kê cũ khi có lỗi
     } finally {
       setStatsLoading(false);
       console.log("🏁 Hoàn tất tải thống kê");
     }
   };
 
-  // Cập nhật sidebar khi thay đổi kích thước màn hình
   useEffect(() => {
     if (isMobile) {
-      setSidebarOpen(false); // Ẩn sidebar trên mobile - chỉ hiện khi click menu
+      setSidebarOpen(false); 
     } else {
-      setSidebarOpen(true); // Hiện sidebar trên desktop
+      setSidebarOpen(true); 
     }
   }, [isMobile]);
 
-  // Thêm listener cho resize window để đảm bảo responsive
+
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      const isMobileSize = width < 1200; // Khớp với breakpoint lg
+      const isMobileSize = width < 1200; 
 
       if (isMobileSize !== isMobile) {
         if (isMobileSize) {
@@ -292,7 +292,6 @@ export default function Dashboard() {
     return () => window.removeEventListener("resize", handleResize);
   }, [isMobile]);
 
-  // Tự động mở menu tương ứng theo đường dẫn hiện tại
   useEffect(() => {
     if (!pathname) return;
     if (pathname.startsWith("/devices")) {
@@ -342,7 +341,6 @@ export default function Dashboard() {
         overflow: "hidden",
       }}
     >
-      {/* Tiêu đề */}
       <Box sx={{ mb: 4, flexShrink: 0 }}>
         <Typography variant="h5" fontWeight="bold" gutterBottom>
           Quản lý Thiết bị
@@ -352,7 +350,6 @@ export default function Dashboard() {
         </Typography>
       </Box>
 
-      {/* Hồ sơ người dùng */}
       <Box
         sx={{
           display: "flex",
@@ -393,7 +390,6 @@ export default function Dashboard() {
         </Box>
       </Box>
 
-      {/* Menu điều hướng - Có thể cuộn */}
       <Box sx={{ flex: 1, overflow: "auto", pr: 1 }}>
         <Box sx={{ mb: 2 }}>
           <Button
@@ -1355,67 +1351,6 @@ export default function Dashboard() {
                 )}
               </Box>
             </Box>
-          </Container>
-        </Box>
-
-        {/* Footer */}
-        <Box
-          sx={{
-            bgcolor: "primary.main",
-            color: "white",
-            p: 4,
-          }}
-        >
-          <Container maxWidth="xl">
-            <Box
-              sx={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-                gap: 4,
-              }}
-            >
-              <Box>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  Trung tâm Văn hóa Thể thao
-                </Typography>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  & Truyền thanh
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Xã Bắc Tân Uyên, TP Hồ Chí Minh
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  Liên hệ
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Điện thoại: (0274) XXX-XXXX
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Email: bactanuyen@vanhoathethao.gov.vn
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="h6" fontWeight="bold" gutterBottom>
-                  Hỗ trợ kỹ thuật
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Hotline: 1900-1900
-                </Typography>
-                <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                  Email: support@vanhoathethao-bactanuyen.gov.vn
-                </Typography>
-              </Box>
-            </Box>
-            <Divider sx={{ borderColor: "rgba(255,255,255,0.3)", my: 3 }} />
-            <Typography
-              variant="body2"
-              sx={{ textAlign: "center", opacity: 0.8 }}
-            >
-              ©2025 Trung tâm Văn hóa Thể thao & Truyền thanh xã Bắc Tân Uyên.
-              Tất cả quyền được bảo lưu.
-            </Typography>
           </Container>
         </Box>
       </Box>

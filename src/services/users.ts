@@ -25,7 +25,6 @@ export interface User {
   email: string;
   phone: string;
   department: string;
-  position: string;
   startDate: string;
   status: "active" | "inactive" | "suspended";
   role: "director" | "deputy_director" | "manager" | "staff" | "technician";
@@ -48,7 +47,6 @@ export interface UserFormData {
   email: string;
   phone: string;
   department: string;
-  position: string;
   startDate: string;
   status: "active" | "inactive" | "suspended";
   role: "director" | "deputy_director" | "manager" | "staff" | "technician";

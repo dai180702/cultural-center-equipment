@@ -30,6 +30,7 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
+  Menu,
 } from "@mui/material";
 import {
   Save as SaveIcon,
@@ -70,6 +71,12 @@ import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { User } from "@/services/users";
 import { useAuth } from "@/contexts/AuthContext";
+import {
+  getAllProvinces,
+  getDistrictsByProvince,
+  parseAddress,
+  formatAddress,
+} from "@/data/vietnam-provinces";
 
 const steps = ["Thông tin cơ bản", "Thông tin công việc", "Thông tin bổ sung"]; // không còn sử dụng stepper
 
@@ -91,7 +98,6 @@ export default function EditUserPage() {
     email: string;
     phone: string;
     department: string;
-    position: string;
     startDate: string;
     status: "active" | "inactive" | "suspended";
     role: "director" | "deputy_director" | "manager" | "staff" | "technician";
@@ -109,7 +115,6 @@ export default function EditUserPage() {
     email: "",
     phone: "",
     department: "",
-    position: "",
     startDate: "",
     status: "active",
     role: "staff",
@@ -143,6 +148,15 @@ export default function EditUserPage() {
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+
+  // State cho menu tìm kiếm địa chỉ
+  const [selectedProvince, setSelectedProvince] = useState("");
+  const [selectedDistrict, setSelectedDistrict] = useState("");
+  const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
+  const [provinceAnchorEl, setProvinceAnchorEl] = useState<null | HTMLElement>(null);
+  const [districtAnchorEl, setDistrictAnchorEl] = useState<null | HTMLElement>(null);
+  const [provinceSearchTerm, setProvinceSearchTerm] = useState("");
+  const [districtSearchTerm, setDistrictSearchTerm] = useState("");
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
@@ -195,7 +209,6 @@ export default function EditUserPage() {
           email: userData.email || "",
           phone: userData.phone || "",
           department: userData.department || "",
-          position: userData.position || "",
           startDate: userData.startDate ? userData.startDate.split("T")[0] : "",
           status: userData.status || "active",
           role: userData.role || "staff",
@@ -211,6 +224,19 @@ export default function EditUserPage() {
               : [""],
           notes: userData.notes || "",
         });
+
+        // Parse address để set selectedProvince và selectedDistrict
+        if (userData.address) {
+          const { province, district } = parseAddress(userData.address);
+          if (province) {
+            setSelectedProvince(province);
+            const districts = getDistrictsByProvince(province);
+            setAvailableDistricts(districts);
+            if (district) {
+              setSelectedDistrict(district);
+            }
+          }
+        }
       }
     } catch (error) {
       console.error("Lỗi khi tải thông tin nhân viên:", error);
@@ -233,6 +259,24 @@ export default function EditUserPage() {
         [field]: "",
       }));
     }
+  };
+
+  const handleProvinceChange = (province: string) => {
+    setSelectedProvince(province);
+    const districts = getDistrictsByProvince(province);
+    setAvailableDistricts(districts);
+    
+    if (selectedDistrict && !districts.includes(selectedDistrict)) {
+      setSelectedDistrict("");
+      handleInputChange("address", formatAddress(province, ""));
+    } else {
+      handleInputChange("address", formatAddress(province, selectedDistrict));
+    }
+  };
+
+  const handleDistrictChange = (district: string) => {
+    setSelectedDistrict(district);
+    handleInputChange("address", formatAddress(selectedProvince, district));
   };
 
   // Xử lý thay đổi emergency contact
@@ -299,9 +343,6 @@ export default function EditUserPage() {
     if (step === 1 || step === -1) {
       if (!formData.department.trim()) {
         newErrors.department = "Phòng ban là bắt buộc";
-      }
-      if (!formData.position.trim()) {
-        newErrors.position = "Chức vụ là bắt buộc";
       }
       if (!formData.startDate) {
         newErrors.startDate = "Ngày vào làm là bắt buộc";
@@ -685,18 +726,306 @@ export default function EditUserPage() {
                       placeholder="0123456789"
                     />
                   </MuiBox>
+                  {/* Địa chỉ với Tỉnh/TP và Phường/Xã */}
                   <MuiBox sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
-                    <TextField
-                      fullWidth
-                      label="Địa chỉ"
-                      value={formData.address}
-                      onChange={(e) =>
-                        handleInputChange("address", e.target.value)
-                      }
-                      multiline
-                      rows={2}
-                      placeholder="Nhập địa chỉ chi tiết"
-                    />
+                    <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
+                      Địa chỉ
+                    </Typography>
+                    <MuiBox
+                      sx={{
+                        display: "grid",
+                        gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" },
+                        gap: 2,
+                      }}
+                    >
+                      {/* Tỉnh/Thành phố */}
+                      <MuiBox>
+                        <TextField
+                          fullWidth
+                          label="Tỉnh/Thành phố"
+                          value={selectedProvince}
+                          onClick={(e) => {
+                            setProvinceAnchorEl(e.currentTarget);
+                            setProvinceSearchTerm("");
+                          }}
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          placeholder="Chọn tỉnh/thành phố..."
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              cursor: "pointer",
+                            },
+                          }}
+                        />
+                        <Menu
+                          anchorEl={provinceAnchorEl}
+                          open={Boolean(provinceAnchorEl)}
+                          onClose={() => setProvinceAnchorEl(null)}
+                          anchorOrigin={{
+                            vertical: "bottom",
+                            horizontal: "left",
+                          }}
+                          transformOrigin={{
+                            vertical: "top",
+                            horizontal: "left",
+                          }}
+                          PaperProps={{
+                            sx: {
+                              maxHeight: 300,
+                              width: provinceAnchorEl?.offsetWidth || 300,
+                              mt: 0.5,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                              borderRadius: "4px",
+                              "& .MuiList-root": {
+                                py: 0,
+                                px: 0,
+                              },
+                            },
+                          }}
+                        >
+                          <MuiBox
+                            sx={{
+                              p: 1.25,
+                              pb: 1,
+                              position: "sticky",
+                              top: 0,
+                              bgcolor: "#fff",
+                              zIndex: 1,
+                              borderBottom: "1px solid #e0e0e0",
+                            }}
+                          >
+                            <TextField
+                              fullWidth
+                              size="small"
+                              placeholder="Tìm kiếm..."
+                              value={provinceSearchTerm}
+                              onChange={(e) =>
+                                setProvinceSearchTerm(e.target.value)
+                              }
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  backgroundColor: "#fff",
+                                  fontSize: "0.95rem",
+                                  "& input": {
+                                    py: 0.875,
+                                  },
+                                },
+                              }}
+                            />
+                          </MuiBox>
+                          {getAllProvinces()
+                            .filter((province) =>
+                              province
+                                .toLowerCase()
+                                .includes(provinceSearchTerm.toLowerCase())
+                            )
+                            .map((province) => (
+                              <MenuItem
+                                key={province}
+                                selected={province === selectedProvince}
+                                onClick={() => {
+                                  handleProvinceChange(province);
+                                  setProvinceAnchorEl(null);
+                                  setProvinceSearchTerm("");
+                                }}
+                                sx={{
+                                  py: 1,
+                                  px: 2,
+                                  fontSize: "0.95rem",
+                                  minHeight: "40px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  "&.Mui-selected": {
+                                    bgcolor: "#d32f2f !important",
+                                    color: "#fff",
+                                    fontWeight: 500,
+                                    "&:hover": {
+                                      bgcolor: "#c62828 !important",
+                                    },
+                                  },
+                                  "&:hover": {
+                                    bgcolor: "#f5f5f5",
+                                  },
+                                }}
+                              >
+                                {province}
+                              </MenuItem>
+                            ))}
+                          {getAllProvinces().filter((province) =>
+                            province
+                              .toLowerCase()
+                              .includes(provinceSearchTerm.toLowerCase())
+                          ).length === 0 && (
+                            <MenuItem
+                              disabled
+                              sx={{
+                                py: 1,
+                                px: 2,
+                                fontSize: "0.95rem",
+                                minHeight: "40px",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              Không tìm thấy
+                            </MenuItem>
+                          )}
+                        </Menu>
+                      </MuiBox>
+
+                      {/* Phường/Xã */}
+                      <MuiBox>
+                        <TextField
+                          fullWidth
+                          label="Phường/Xã"
+                          value={selectedDistrict}
+                          onClick={(e) => {
+                            if (selectedProvince) {
+                              setDistrictAnchorEl(e.currentTarget);
+                              setDistrictSearchTerm("");
+                            }
+                          }}
+                          InputProps={{
+                            readOnly: true,
+                          }}
+                          disabled={!selectedProvince}
+                          placeholder={
+                            !selectedProvince
+                              ? "Chọn tỉnh/thành phố trước..."
+                              : "Chọn phường/xã..."
+                          }
+                          helperText={
+                            !selectedProvince
+                              ? "Vui lòng chọn tỉnh/thành phố trước"
+                              : ""
+                          }
+                          sx={{
+                            "& .MuiInputBase-root": {
+                              cursor: selectedProvince ? "pointer" : "default",
+                            },
+                          }}
+                        />
+                        <Menu
+                          anchorEl={districtAnchorEl}
+                          open={Boolean(districtAnchorEl)}
+                          onClose={() => setDistrictAnchorEl(null)}
+                          anchorOrigin={{
+                            vertical: "bottom",
+                            horizontal: "left",
+                          }}
+                          transformOrigin={{
+                            vertical: "top",
+                            horizontal: "left",
+                          }}
+                          PaperProps={{
+                            sx: {
+                              maxHeight: 300,
+                              width: districtAnchorEl?.offsetWidth || 300,
+                              mt: 0.5,
+                              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                              borderRadius: "4px",
+                              "& .MuiList-root": {
+                                py: 0,
+                                px: 0,
+                              },
+                            },
+                          }}
+                        >
+                          <MuiBox
+                            sx={{
+                              p: 1.25,
+                              pb: 1,
+                              position: "sticky",
+                              top: 0,
+                              bgcolor: "#fff",
+                              zIndex: 1,
+                              borderBottom: "1px solid #e0e0e0",
+                            }}
+                          >
+                            <TextField
+                              fullWidth
+                              size="small"
+                              placeholder="Tìm kiếm..."
+                              value={districtSearchTerm}
+                              onChange={(e) =>
+                                setDistrictSearchTerm(e.target.value)
+                              }
+                              autoFocus
+                              onClick={(e) => e.stopPropagation()}
+                              sx={{
+                                "& .MuiOutlinedInput-root": {
+                                  backgroundColor: "#fff",
+                                  fontSize: "0.95rem",
+                                  "& input": {
+                                    py: 0.875,
+                                  },
+                                },
+                              }}
+                            />
+                          </MuiBox>
+                          {availableDistricts
+                            .filter((district) =>
+                              district
+                                .toLowerCase()
+                                .includes(districtSearchTerm.toLowerCase())
+                            )
+                            .map((district) => (
+                              <MenuItem
+                                key={district}
+                                selected={district === selectedDistrict}
+                                onClick={() => {
+                                  handleDistrictChange(district);
+                                  setDistrictAnchorEl(null);
+                                  setDistrictSearchTerm("");
+                                }}
+                                sx={{
+                                  py: 1,
+                                  px: 2,
+                                  fontSize: "0.95rem",
+                                  minHeight: "40px",
+                                  display: "flex",
+                                  alignItems: "center",
+                                  "&.Mui-selected": {
+                                    bgcolor: "#d32f2f !important",
+                                    color: "#fff",
+                                    fontWeight: 500,
+                                    "&:hover": {
+                                      bgcolor: "#c62828 !important",
+                                    },
+                                  },
+                                  "&:hover": {
+                                    bgcolor: "#f5f5f5",
+                                  },
+                                }}
+                              >
+                                {district}
+                              </MenuItem>
+                            ))}
+                          {availableDistricts.filter((district) =>
+                            district
+                              .toLowerCase()
+                              .includes(districtSearchTerm.toLowerCase())
+                          ).length === 0 && (
+                            <MenuItem
+                              disabled
+                              sx={{
+                                py: 1,
+                                px: 2,
+                                fontSize: "0.95rem",
+                                minHeight: "40px",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              Không tìm thấy
+                            </MenuItem>
+                          )}
+                        </Menu>
+                      </MuiBox>
+                    </MuiBox>
                   </MuiBox>
                 </MuiBox>
               </Paper>
@@ -732,19 +1061,6 @@ export default function EditUserPage() {
                         <FormHelperText>{errors.department}</FormHelperText>
                       )}
                     </FormControl>
-                  </MuiBox>
-                  <MuiBox>
-                    <TextField
-                      fullWidth
-                      label="Chức vụ *"
-                      value={formData.position}
-                      onChange={(e) =>
-                        handleInputChange("position", e.target.value)
-                      }
-                      error={!!errors.position}
-                      helperText={errors.position}
-                      placeholder="VD: Nhân viên, Trưởng nhóm..."
-                    />
                   </MuiBox>
                   <MuiBox>
                     <TextField
