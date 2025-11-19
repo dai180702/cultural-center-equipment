@@ -25,6 +25,7 @@ export interface User {
   email: string;
   phone: string;
   department: string;
+  position?: string;
   startDate: string;
   status: "active" | "inactive" | "suspended";
   role: "director" | "deputy_director" | "manager" | "staff" | "technician";
@@ -47,6 +48,7 @@ export interface UserFormData {
   email: string;
   phone: string;
   department: string;
+  position?: string;
   startDate: string;
   status: "active" | "inactive" | "suspended";
   role: "director" | "deputy_director" | "manager" | "staff" | "technician";
@@ -222,7 +224,7 @@ export const getUsersByFilters = async (
           user.employeeId.toLowerCase().includes(searchTerm) ||
           user.email.toLowerCase().includes(searchTerm) ||
           user.department.toLowerCase().includes(searchTerm) ||
-          user.position.toLowerCase().includes(searchTerm)
+          (user.position && user.position.toLowerCase().includes(searchTerm))
       );
     }
 
