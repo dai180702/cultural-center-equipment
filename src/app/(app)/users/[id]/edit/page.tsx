@@ -619,7 +619,7 @@ export default function EditUserPage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",

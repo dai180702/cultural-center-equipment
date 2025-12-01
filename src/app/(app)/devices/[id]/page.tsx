@@ -402,7 +402,7 @@ export default function DeviceDetailPage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -418,9 +418,9 @@ export default function DeviceDetailPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Giới thiệu
@@ -428,9 +428,9 @@ export default function DeviceDetailPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Liên hệ
@@ -589,47 +589,17 @@ export default function DeviceDetailPage() {
                           </Box>
                         </Box>
 
-                        <Box
-                          sx={{
-                            display: "flex",
-                            flexDirection: { xs: "column", sm: "row" },
-                            gap: 3,
-                          }}
-                        >
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="subtitle2"
-                              color="text.secondary"
-                              gutterBottom
-                            >
-                              Số serial
-                            </Typography>
-                            <Typography variant="body1" fontFamily="monospace">
-                              {device.serialNumber}
-                            </Typography>
-                          </Box>
-
-                          <Box sx={{ flex: 1 }}>
-                            <Typography
-                              variant="subtitle2"
-                              color="text.secondary"
-                              gutterBottom
-                            >
-                              Vị trí
-                            </Typography>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 1,
-                              }}
-                            >
-                              <LocationIcon color="action" fontSize="small" />
-                              <Typography variant="body1">
-                                {device.location}
-                              </Typography>
-                            </Box>
-                          </Box>
+                        <Box>
+                          <Typography
+                            variant="subtitle2"
+                            color="text.secondary"
+                            gutterBottom
+                          >
+                            Số serial
+                          </Typography>
+                          <Typography variant="body1" fontFamily="monospace">
+                            {device.serialNumber}
+                          </Typography>
                         </Box>
 
                         <Box

@@ -287,7 +287,6 @@ export default function DeviceReportsPage() {
                 <th>Danh mục</th>
                 <th>Thương hiệu</th>
                 <th>Trạng thái</th>
-                <th>Vị trí</th>
                 <th>Phòng ban</th>
                 <th>Người được giao</th>
               </tr>
@@ -302,7 +301,6 @@ export default function DeviceReportsPage() {
                   <td>${device.category || ""}</td>
                   <td>${device.brand || ""}</td>
                   <td>${deviceStatusLabels[device.status] || device.status}</td>
-                  <td>${device.location || ""}</td>
                   <td>${device.department || ""}</td>
                   <td>${device.assignedTo ? "Có" : "Không"}</td>
                 </tr>
@@ -333,7 +331,6 @@ export default function DeviceReportsPage() {
       "Model",
       "Số serial",
       "Trạng thái",
-      "Vị trí",
       "Phòng ban",
       "Người được giao",
       "Ngày mua",
@@ -351,7 +348,6 @@ export default function DeviceReportsPage() {
           `"${device.model || ""}"`,
           `"${device.serialNumber || ""}"`,
           `"${deviceStatusLabels[device.status] || device.status}"`,
-          `"${device.location || ""}"`,
           `"${device.department || ""}"`,
           `"${device.assignedTo ? "Có" : "Không"}"`,
           `"${device.purchaseDate || ""}"`,

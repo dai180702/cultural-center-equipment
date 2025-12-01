@@ -30,6 +30,11 @@ export interface Device {
   location: string; // Vị trí đặt thiết bị
   department: string; // Phòng ban sử dụng
   assignedTo?: string; // Người được giao thiết bị
+  isDeleted?: boolean; // Đã xóa (soft delete)
+  deletedAt?: Date | string; // Ngày xóa
+  deletedBy?: string; // UID người xóa
+  deletedByName?: string; // Tên người xóa
+  deleteReason?: string; // Lý do xóa
   description?: string; // Mô tả thiết bị
   specifications?: string; // Thông số kỹ thuật
   purchasePrice?: number | null; // Giá mua
@@ -63,6 +68,11 @@ export interface DeviceFormData {
   location: string; // Vị trí đặt thiết bị
   department: string; // Phòng ban sử dụng
   assignedTo?: string; // Người được giao thiết bị
+  isDeleted?: boolean; // Đã xóa (soft delete)
+  deletedAt?: string; // Ngày xóa
+  deletedBy?: string; // UID người xóa
+  deletedByName?: string; // Tên người xóa
+  deleteReason?: string; // Lý do xóa
   description?: string; // Mô tả thiết bị
   specifications?: string; // Thông số kỹ thuật
   purchasePrice?: number | null; // Giá mua

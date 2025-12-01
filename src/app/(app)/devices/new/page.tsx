@@ -232,8 +232,6 @@ export default function AddDevicePage() {
         break;
 
       case 1: // Step 2: Detailed Information
-        if (!formData.location.trim())
-          newErrors.location = "Vị trí là bắt buộc";
         if (!formData.department)
           newErrors.department = "Phòng ban là bắt buộc";
         break;
@@ -496,18 +494,6 @@ export default function AddDevicePage() {
               gap: 3,
             }}
           >
-            <Box>
-              <TextField
-                fullWidth
-                label="Vị trí *"
-                value={formData.location}
-                onChange={(e) => handleInputChange("location", e.target.value)}
-                error={!!errors.location}
-                helperText={errors.location}
-                required
-                placeholder="VD: Phòng 101, Tầng 1"
-              />
-            </Box>
             <Box>
               <FormControl fullWidth error={!!errors.department} required>
                 <InputLabel>Phòng ban *</InputLabel>
@@ -1409,7 +1395,7 @@ export default function AddDevicePage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1425,9 +1411,9 @@ export default function AddDevicePage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Giới thiệu
@@ -1435,9 +1421,9 @@ export default function AddDevicePage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Liên hệ

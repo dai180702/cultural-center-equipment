@@ -37,6 +37,8 @@ import {
   MenuList,
   ListItemIcon,
   ListItemText,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
@@ -90,10 +92,10 @@ export default function WarehouseManagementPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categoryFilter, setCategoryFilter] = useState("Tất cả");
-  const [locationFilter, setLocationFilter] = useState("Tất cả");
-  const [departmentFilter, setDepartmentFilter] = useState("Tất cả");
+  const [showDeleted, setShowDeleted] = useState(true); // Hiển thị thiết bị đã xóa
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deviceToDelete, setDeviceToDelete] = useState<Device | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -114,6 +116,13 @@ export default function WarehouseManagementPage() {
     }
     loadDevices();
   }, [currentUser, router]);
+
+  // Auto-apply filter when showDeleted changes
+  useEffect(() => {
+    if (allDevices.length > 0) {
+      handleFilter();
+    }
+  }, [showDeleted]);
 
   const loadDevices = async () => {
     try {
@@ -149,6 +158,11 @@ export default function WarehouseManagementPage() {
   const handleFilter = () => {
     let filteredDevices = allDevices;
 
+    // Filter deleted devices based on showDeleted state
+    if (!showDeleted) {
+      filteredDevices = filteredDevices.filter((device) => !device.isDeleted);
+    }
+
     if (statusFilter !== "all") {
       filteredDevices = filteredDevices.filter(
         (device) => device.status === statusFilter
@@ -158,18 +172,6 @@ export default function WarehouseManagementPage() {
     if (categoryFilter !== "Tất cả") {
       filteredDevices = filteredDevices.filter(
         (device) => device.category === categoryFilter
-      );
-    }
-
-    if (locationFilter !== "Tất cả") {
-      filteredDevices = filteredDevices.filter(
-        (device) => device.location === locationFilter
-      );
-    }
-
-    if (departmentFilter !== "Tất cả") {
-      filteredDevices = filteredDevices.filter(
-        (device) => device.department === departmentFilter
       );
     }
 
@@ -195,32 +197,14 @@ export default function WarehouseManagementPage() {
   const handleClearFilters = () => {
     setStatusFilter("all");
     setCategoryFilter("Tất cả");
-    setLocationFilter("Tất cả");
-    setDepartmentFilter("Tất cả");
     setSearchTerm("");
     setDevices(allDevices);
     setCurrentPage(1);
   };
 
-  // Get unique locations and departments from devices
-  const getUniqueLocations = () => {
-    const locations = new Set<string>();
-    allDevices.forEach((device) => {
-      if (device.location) locations.add(device.location);
-    });
-    return Array.from(locations).sort();
-  };
-
-  const getUniqueDepartments = () => {
-    const departments = new Set<string>();
-    allDevices.forEach((device) => {
-      if (device.department) departments.add(device.department);
-    });
-    return Array.from(departments).sort();
-  };
-
   const handleDeleteClick = (device: Device) => {
     setDeviceToDelete(device);
+    setDeleteReason("");
     setDeleteDialogOpen(true);
   };
 
@@ -229,16 +213,18 @@ export default function WarehouseManagementPage() {
 
     try {
       setDeleting(true);
-      await deleteWarehouseDevice(deviceToDelete.id);
-      setSuccess("Thiết bị đã được xóa khỏi kho thành công");
-      const updatedDevices = devices.filter((d) => d.id !== deviceToDelete.id);
-      const updatedAllDevices = allDevices.filter(
-        (d) => d.id !== deviceToDelete.id
+      await deleteWarehouseDevice(
+        deviceToDelete.id,
+        currentUser?.uid,
+        currentUser?.displayName || currentUser?.email || undefined,
+        deleteReason
       );
-      setDevices(updatedDevices);
-      setAllDevices(updatedAllDevices);
+      setSuccess("Thiết bị đã được đánh dấu là đã xóa");
       setDeleteDialogOpen(false);
       setDeviceToDelete(null);
+      setDeleteReason("");
+      // Reload data from server to ensure consistency
+      await loadDevices();
     } catch (err) {
       setError("Không thể xóa thiết bị khỏi kho");
     } finally {
@@ -289,10 +275,16 @@ export default function WarehouseManagementPage() {
     }
   };
 
-  // Pagination
   const indexOfLastDevice = currentPage * devicesPerPage;
   const indexOfFirstDevice = indexOfLastDevice - devicesPerPage;
-  const currentDevices = devices.slice(indexOfFirstDevice, indexOfLastDevice);
+  const sortedDevices = [...devices].sort((a, b) => {
+    if (a.isDeleted === b.isDeleted) return 0;
+    return a.isDeleted ? 1 : -1;
+  });
+  const currentDevices = sortedDevices.slice(
+    indexOfFirstDevice,
+    indexOfLastDevice
+  );
   const totalPages = Math.ceil(devices.length / devicesPerPage);
 
   const handlePageChange = (
@@ -427,24 +419,27 @@ export default function WarehouseManagementPage() {
 
   // Report statistics
   const getReportStats = () => {
-    const total = devices.length;
-    const byStatus = devices.reduce((acc, device) => {
+    // Filter out deleted devices for statistics
+    const activeDevices = devices.filter((device) => !device.isDeleted);
+
+    const total = activeDevices.length;
+    const byStatus = activeDevices.reduce((acc, device) => {
       acc[device.status] = (acc[device.status] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const byCategory = devices.reduce((acc, device) => {
+    const byCategory = activeDevices.reduce((acc, device) => {
       acc[device.category] = (acc[device.category] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const byDepartment = devices.reduce((acc, device) => {
+    const byDepartment = activeDevices.reduce((acc, device) => {
       const dept = device.department || "Chưa phân bổ";
       acc[dept] = (acc[dept] || 0) + 1;
       return acc;
     }, {} as Record<string, number>);
 
-    const byLocation = devices.reduce((acc, device) => {
+    const byLocation = activeDevices.reduce((acc, device) => {
       const loc = device.location || "Chưa xác định";
       acc[loc] = (acc[loc] || 0) + 1;
       return acc;
@@ -477,7 +472,7 @@ export default function WarehouseManagementPage() {
               gridTemplateColumns: {
                 xs: "1fr",
                 sm: "repeat(2, 1fr)",
-                md: "2fr 1fr 1fr 1fr 1fr",
+                md: "2fr 1fr 1fr",
               },
               gap: 2,
               alignItems: "center",
@@ -546,42 +541,18 @@ export default function WarehouseManagementPage() {
                 ))}
               </Select>
             </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Vị trí</InputLabel>
-              <Select
-                value={locationFilter}
-                label="Vị trí"
-                onChange={(e) => setLocationFilter(e.target.value)}
-              >
-                <MenuItem value="Tất cả">Tất cả</MenuItem>
-                {getUniqueLocations().map((location) => (
-                  <MenuItem key={location} value={location}>
-                    {location}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-
-            <FormControl fullWidth>
-              <InputLabel>Phòng ban</InputLabel>
-              <Select
-                value={departmentFilter}
-                label="Phòng ban"
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-              >
-                <MenuItem value="Tất cả">Tất cả</MenuItem>
-                {getUniqueDepartments().map((department) => (
-                  <MenuItem key={department} value={department}>
-                    {department}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
           </Box>
 
           {/* Action Buttons */}
-          <Box sx={{ mt: 2, display: "flex", gap: 2, flexWrap: "wrap" }}>
+          <Box
+            sx={{
+              mt: 2,
+              display: "flex",
+              gap: 2,
+              flexWrap: "wrap",
+              alignItems: "center",
+            }}
+          >
             <Button
               variant="outlined"
               startIcon={<FilterIcon />}
@@ -596,6 +567,16 @@ export default function WarehouseManagementPage() {
             >
               Xóa bộ lọc
             </Button>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showDeleted}
+                  onChange={(e) => setShowDeleted(e.target.checked)}
+                  color="error"
+                />
+              }
+              label="Hiển thị thiết bị đã xóa"
+            />
           </Box>
 
           {/* Additional Actions */}
@@ -720,21 +701,76 @@ export default function WarehouseManagementPage() {
                   </TableHead>
                   <TableBody>
                     {currentDevices.map((device) => (
-                      <TableRow key={device.id} hover>
-                        <TableCell>{device.code}</TableCell>
-                        <TableCell>{device.name}</TableCell>
-                        <TableCell>{device.category}</TableCell>
-                        <TableCell>{device.brand}</TableCell>
-                        <TableCell>{device.model}</TableCell>
-                        <TableCell>
-                          <Chip
-                            label={getStatusLabel(device.status)}
-                            color={getStatusColor(device.status) as any}
-                            size="small"
-                          />
+                      <TableRow
+                        key={device.id}
+                        hover
+                        sx={{
+                          opacity: device.isDeleted ? 0.5 : 1,
+                          backgroundColor: device.isDeleted
+                            ? "rgba(255, 0, 0, 0.05)"
+                            : "inherit",
+                        }}
+                      >
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.code}
                         </TableCell>
-                        <TableCell>{device.location}</TableCell>
-                        <TableCell>{device.department}</TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.name}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.category}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.brand}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.model}
+                        </TableCell>
+                        <TableCell>
+                          {device.isDeleted ? (
+                            <Chip label="Đã xóa" color="error" size="small" />
+                          ) : (
+                            <Chip
+                              label={getStatusLabel(device.status)}
+                              color={getStatusColor(device.status) as any}
+                              size="small"
+                            />
+                          )}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.location}
+                        </TableCell>
+                        <TableCell
+                          sx={{
+                            color: device.isDeleted ? "error.main" : "inherit",
+                          }}
+                        >
+                          {device.department}
+                        </TableCell>
                         <TableCell>
                           {device.createdByName || (
                             <Typography variant="body2" color="text.secondary">
@@ -757,24 +793,28 @@ export default function WarehouseManagementPage() {
                                 <ViewIcon />
                               </IconButton>
                             </Tooltip>
-                            <Tooltip title="Sửa">
-                              <IconButton
-                                size="small"
-                                color="warning"
-                                onClick={() => handleEdit(device)}
-                              >
-                                <EditIcon />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="Xóa">
-                              <IconButton
-                                size="small"
-                                color="error"
-                                onClick={() => handleDeleteClick(device)}
-                              >
-                                <DeleteIcon />
-                              </IconButton>
-                            </Tooltip>
+                            {!device.isDeleted && (
+                              <>
+                                <Tooltip title="Sửa">
+                                  <IconButton
+                                    size="small"
+                                    color="warning"
+                                    onClick={() => handleEdit(device)}
+                                  >
+                                    <EditIcon />
+                                  </IconButton>
+                                </Tooltip>
+                                <Tooltip title="Xóa">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() => handleDeleteClick(device)}
+                                  >
+                                    <DeleteIcon />
+                                  </IconButton>
+                                </Tooltip>
+                              </>
+                            )}
                           </Stack>
                         </TableCell>
                       </TableRow>
@@ -806,11 +846,23 @@ export default function WarehouseManagementPage() {
       >
         <DialogTitle>Xác nhận xóa thiết bị</DialogTitle>
         <DialogContent>
-          <Typography>
+          <Typography gutterBottom>
             Bạn có chắc chắn muốn xóa thiết bị{" "}
-            <strong>{deviceToDelete?.name}</strong> không? Hành động này không
-            thể hoàn tác.
+            <strong>{deviceToDelete?.name}</strong> không? Thiết bị sẽ được đánh
+            dấu là "Đã xóa" và vẫn hiển thị trong danh sách với màu đỏ.
           </Typography>
+          <FormControl fullWidth sx={{ mt: 2 }}>
+            <InputLabel>Lý do xóa</InputLabel>
+            <Select
+              value={deleteReason}
+              label="Lý do xóa"
+              onChange={(e) => setDeleteReason(e.target.value)}
+            >
+              <MenuItem value="">Không chọn</MenuItem>
+              <MenuItem value="Bán">Bán</MenuItem>
+              <MenuItem value="Hư">Hư</MenuItem>
+            </Select>
+          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
@@ -981,22 +1033,63 @@ export default function WarehouseManagementPage() {
                   </Typography>
                 </Box>
               )}
+              {selectedDevice.isDeleted && (
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 1,
+                    backgroundColor: "rgba(255, 0, 0, 0.1)",
+                    border: "1px solid",
+                    borderColor: "error.main",
+                  }}
+                >
+                  <Typography
+                    variant="subtitle2"
+                    color="error"
+                    fontWeight="bold"
+                    gutterBottom
+                  >
+                    ⚠️ Thiết bị đã bị xóa
+                  </Typography>
+                  {selectedDevice.deletedAt && (
+                    <Typography variant="body2" color="text.secondary">
+                      Ngày xóa: {formatDate(selectedDevice.deletedAt)}
+                    </Typography>
+                  )}
+                  {selectedDevice.deletedByName && (
+                    <Typography variant="body2" color="text.secondary">
+                      Người xóa: {selectedDevice.deletedByName}
+                    </Typography>
+                  )}
+                  {selectedDevice.deleteReason && (
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mt: 1 }}
+                    >
+                      Lý do: {selectedDevice.deleteReason}
+                    </Typography>
+                  )}
+                </Box>
+              )}
             </Box>
           )}
 
           <Box sx={{ mt: 3, display: "flex", gap: 2 }}>
-            <Button
-              variant="contained"
-              startIcon={<EditIcon />}
-              onClick={() => {
-                if (selectedDevice) {
-                  handleEdit(selectedDevice);
-                }
-              }}
-              fullWidth
-            >
-              Sửa thiết bị
-            </Button>
+            {!selectedDevice?.isDeleted && (
+              <Button
+                variant="contained"
+                startIcon={<EditIcon />}
+                onClick={() => {
+                  if (selectedDevice) {
+                    handleEdit(selectedDevice);
+                  }
+                }}
+                fullWidth
+              >
+                Sửa thiết bị
+              </Button>
+            )}
             <Button
               variant="outlined"
               onClick={() => setDetailDrawerOpen(false)}

@@ -363,7 +363,7 @@ export default function EditDevicePage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -379,9 +379,9 @@ export default function EditDevicePage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Giới thiệu
@@ -389,9 +389,9 @@ export default function EditDevicePage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Liên hệ
@@ -579,47 +579,25 @@ export default function EditDevicePage() {
                 <Card>
                   <CardContent sx={{ p: 3 }}>
                     <Typography variant="h6" fontWeight="bold" gutterBottom>
-                      Vị trí và phân công
+                      Phân công
                     </Typography>
 
                     <Box
                       sx={{ display: "flex", flexDirection: "column", gap: 3 }}
                     >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          flexDirection: { xs: "column", sm: "row" },
-                          gap: 3,
-                        }}
-                      >
-                        <TextField
-                          fullWidth
-                          label="Vị trí *"
-                          value={formData.location}
-                          onChange={(e) =>
-                            handleInputChange("location", e.target.value)
-                          }
-                          required
-                          error={!formData.location}
-                          helperText={
-                            !formData.location ? "Vị trí là bắt buộc" : ""
-                          }
-                        />
-
-                        <TextField
-                          fullWidth
-                          label="Phòng ban *"
-                          value={formData.department}
-                          onChange={(e) =>
-                            handleInputChange("department", e.target.value)
-                          }
-                          required
-                          error={!formData.department}
-                          helperText={
-                            !formData.department ? "Phòng ban là bắt buộc" : ""
-                          }
-                        />
-                      </Box>
+                      <TextField
+                        fullWidth
+                        label="Phòng ban *"
+                        value={formData.department}
+                        onChange={(e) =>
+                          handleInputChange("department", e.target.value)
+                        }
+                        required
+                        error={!formData.department}
+                        helperText={
+                          !formData.department ? "Phòng ban là bắt buộc" : ""
+                        }
+                      />
 
                       <TextField
                         fullWidth

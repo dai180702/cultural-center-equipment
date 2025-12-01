@@ -204,7 +204,7 @@ export default function MaintenancePage() {
       <Box
         sx={{
           height: 50,
-          bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -215,28 +215,28 @@ export default function MaintenancePage() {
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         }}
       >
-        <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
-          <Typography
-            variant="body2"
-            sx={{
-              color: "white",
-              cursor: "pointer",
-              "&:hover": { opacity: 0.8 },
-            }}
-          >
-            Giới thiệu
-          </Typography>
-          <Typography
-            variant="body2"
-            sx={{
-              color: "white",
-              cursor: "pointer",
-              "&:hover": { opacity: 0.8 },
-            }}
-          >
-            Liên hệ
-          </Typography>
-        </Box>
+          <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#000000",
+                cursor: "pointer",
+                "&:hover": { opacity: 0.7 },
+              }}
+            >
+              Giới thiệu
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{
+                color: "#000000",
+                cursor: "pointer",
+                "&:hover": { opacity: 0.7 },
+              }}
+            >
+              Liên hệ
+            </Typography>
+          </Box>
       </Box>
 
       {/* Main Content Area */}
@@ -533,11 +533,6 @@ export default function MaintenancePage() {
                           <TableCell
                             sx={{ color: "white", fontWeight: "bold" }}
                           >
-                            Vị trí
-                          </TableCell>
-                          <TableCell
-                            sx={{ color: "white", fontWeight: "bold" }}
-                          >
                             Phòng ban
                           </TableCell>
                           <TableCell
@@ -586,11 +581,6 @@ export default function MaintenancePage() {
                                 color={getStatusColor(device.status) as any}
                                 size="small"
                               />
-                            </TableCell>
-                            <TableCell>
-                              <Typography variant="body2">
-                                {device.location}
-                              </Typography>
                             </TableCell>
                             <TableCell>
                               <Typography variant="body2">

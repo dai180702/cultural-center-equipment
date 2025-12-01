@@ -56,6 +56,7 @@ export const getWarehouseDevices = async (): Promise<Device[]> => {
         transferredToWarehouseAt:
           data.transferredToWarehouseAt?.toDate?.() ||
           data.transferredToWarehouseAt,
+        deletedAt: data.deletedAt?.toDate?.() || data.deletedAt,
       } as Device);
     });
 
@@ -82,6 +83,7 @@ export const getWarehouseDeviceById = async (id: string): Promise<Device | null>
         transferredToWarehouseAt:
           data.transferredToWarehouseAt?.toDate?.() ||
           data.transferredToWarehouseAt,
+        deletedAt: data.deletedAt?.toDate?.() || data.deletedAt,
       } as Device;
     } else {
       return null;
@@ -113,11 +115,23 @@ export const updateWarehouseDevice = async (
   }
 };
 
-// Delete warehouse device
-export const deleteWarehouseDevice = async (id: string): Promise<void> => {
+// Delete warehouse device (soft delete)
+export const deleteWarehouseDevice = async (
+  id: string,
+  userId?: string,
+  userName?: string,
+  deleteReason?: string
+): Promise<void> => {
   try {
     const deviceRef = doc(db, "warehouse", id);
-    await deleteDoc(deviceRef);
+    await updateDoc(deviceRef, {
+      isDeleted: true,
+      deletedAt: new Date(),
+      deletedBy: userId || "Không xác định",
+      deletedByName: userName || "Không xác định",
+      deleteReason: deleteReason || "",
+      updatedAt: new Date(),
+    });
   } catch (error) {
     console.error("Error deleting warehouse device: ", error);
     throw new Error("Không thể xóa thiết bị khỏi kho. Vui lòng thử lại.");
@@ -142,12 +156,19 @@ export const moveDeviceFromWarehouseToDevices = async (
     const { id, createdAt, updatedAt, createdBy, createdByName, updatedBy, updatedByName, ...deviceData } = warehouseDevice;
     const { addDevice } = await import("./devices");
     
-    // Update location to mark as in use (remove "Kho")
+    // Update location - remove "Kho" and use department as location if available
     let newLocation = deviceData.location || "";
     if (newLocation.toLowerCase().includes("kho")) {
-      newLocation = newLocation.replace(/kho/gi, "").trim() || "Đang sử dụng";
-    } else {
-      newLocation = "Đang sử dụng";
+      newLocation = newLocation.replace(/kho/gi, "").trim();
+    }
+    
+    // If location is empty after removing "Kho", use department as location
+    if (!newLocation && department) {
+      newLocation = department;
+    } else if (!newLocation && deviceData.department) {
+      newLocation = deviceData.department;
+    } else if (!newLocation) {
+      newLocation = "Chưa xác định";
     }
 
     const updatedData: DeviceFormData = {
@@ -248,6 +269,10 @@ export const searchWarehouseDevices = async (searchTerm: string): Promise<Device
           ...data,
           createdAt: data.createdAt?.toDate?.() || data.createdAt,
           updatedAt: data.updatedAt?.toDate?.() || data.updatedAt,
+          transferredToWarehouseAt:
+            data.transferredToWarehouseAt?.toDate?.() ||
+            data.transferredToWarehouseAt,
+          deletedAt: data.deletedAt?.toDate?.() || data.deletedAt,
         } as Device);
       }
     });

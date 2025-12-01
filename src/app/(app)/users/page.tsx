@@ -1144,7 +1144,7 @@ export default function UsersPage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1160,9 +1160,9 @@ export default function UsersPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Giới thiệu
@@ -1170,9 +1170,9 @@ export default function UsersPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Liên hệ

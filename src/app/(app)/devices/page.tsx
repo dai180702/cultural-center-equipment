@@ -1206,7 +1206,7 @@ export default function DevicesPage() {
         <Box
           sx={{
             height: 50,
-            bgcolor: "primary.dark",
+            bgcolor: "#90caf9",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1222,9 +1222,9 @@ export default function DevicesPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Giới thiệu
@@ -1232,9 +1232,9 @@ export default function DevicesPage() {
             <Typography
               variant="body2"
               sx={{
-                color: "white",
+                color: "#000000",
                 cursor: "pointer",
-                "&:hover": { opacity: 0.8 },
+                "&:hover": { opacity: 0.7 },
               }}
             >
               Liên hệ
@@ -1405,11 +1405,6 @@ export default function DevicesPage() {
                             <TableCell
                               sx={{ color: "white", fontWeight: "bold" }}
                             >
-                              Vị trí
-                            </TableCell>
-                            <TableCell
-                              sx={{ color: "white", fontWeight: "bold" }}
-                            >
                               Phòng ban
                             </TableCell>
                             <TableCell
@@ -1461,11 +1456,6 @@ export default function DevicesPage() {
                                   color={getStatusColor(device.status) as any}
                                   size="small"
                                 />
-                              </TableCell>
-                              <TableCell>
-                                <Typography variant="body2">
-                                  {device.location}
-                                </Typography>
                               </TableCell>
                               <TableCell>
                                 <Typography variant="body2">
@@ -1650,7 +1640,6 @@ export default function DevicesPage() {
                     <TableCell>Tên thiết bị</TableCell>
                     <TableCell>Danh mục</TableCell>
                     <TableCell>Thương hiệu</TableCell>
-                    <TableCell>Vị trí</TableCell>
                     <TableCell align="center">Thao tác</TableCell>
                   </TableRow>
                 </TableHead>
@@ -1661,7 +1650,6 @@ export default function DevicesPage() {
                       <TableCell>{device.name}</TableCell>
                       <TableCell>{device.category}</TableCell>
                       <TableCell>{device.brand}</TableCell>
-                      <TableCell>{device.location}</TableCell>
                       <TableCell align="center">
                         <Button
                           variant="contained"
@@ -1856,14 +1844,6 @@ export default function DevicesPage() {
                     color={getStatusColor(selectedDevice.status) as any}
                     size="small"
                   />
-                </Box>
-                <Box>
-                  <Typography variant="subtitle2" color="text.secondary">
-                    Vị trí
-                  </Typography>
-                  <Typography variant="body1">
-                    {selectedDevice.location}
-                  </Typography>
                 </Box>
                 <Box>
                   <Typography variant="subtitle2" color="text.secondary">

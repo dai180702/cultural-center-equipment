@@ -57,7 +57,7 @@ export default function AppSectionLayout({
   const [inventoryMenuOpen, setInventoryMenuOpen] = useState(false);
   const [maintenanceMenuOpen, setMaintenanceMenuOpen] = useState(false);
   const [reportsMenuOpen, setReportsMenuOpen] = useState(false);
-  const [usersMenuOpen, setUsersMenuOpen] = useState(true);
+  const [usersMenuOpen, setUsersMenuOpen] = useState(false);
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [currentUserRole, setCurrentUserRole] = useState<UserRole | null>(null);
@@ -116,12 +116,13 @@ export default function AppSectionLayout({
     router.push("/login");
   };
   const isHomeActive = pathname === "/" || pathname?.startsWith("/dashboard");
-  const isDevicesActive = pathname?.startsWith("/devices");
-  const isInventoryActive =
-    pathname?.startsWith("/inventory") || pathname?.startsWith("/warehouse");
   const isMaintenanceActive =
     pathname?.startsWith("/maintenance") ||
     pathname?.startsWith("/devices/maintenance");
+  const isDevicesActive =
+    pathname?.startsWith("/devices") && !isMaintenanceActive;
+  const isInventoryActive =
+    pathname?.startsWith("/inventory") || pathname?.startsWith("/warehouse");
   const isReportsActive = pathname?.startsWith("/reports");
   const isUsersActive = pathname?.startsWith("/users");
   const isNotificationsActive = pathname?.startsWith("/notifications");
@@ -130,8 +131,8 @@ export default function AppSectionLayout({
     <Box
       sx={{
         width: 280,
-        bgcolor: "primary.main",
-        color: "white",
+        bgcolor: "#90caf9",
+        color: "#000000",
         p: 3,
         display: "flex",
         flexDirection: "column",
@@ -155,14 +156,14 @@ export default function AppSectionLayout({
           alignItems: "center",
           gap: 2,
           p: 2,
-          bgcolor: "rgba(255,255,255,0.1)",
+          bgcolor: "rgba(0,0,0,0.08)",
           borderRadius: 2,
           mb: 4,
           flexShrink: 0,
           cursor: "pointer",
           transition: "all 0.2s",
           "&:hover": {
-            bgcolor: "rgba(255,255,255,0.2)",
+            bgcolor: "rgba(0,0,0,0.15)",
             transform: "translateY(-2px)",
           },
         }}
@@ -172,11 +173,11 @@ export default function AppSectionLayout({
             width: 40,
             height: 40,
             borderRadius: "50%",
-            bgcolor: "white",
+            bgcolor: "#1976d2",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "primary.main",
+            color: "white",
             fontWeight: "bold",
           }}
         >
@@ -204,10 +205,10 @@ export default function AppSectionLayout({
               onClick={() => router.push("/dashboard")}
               sx={{
                 justifyContent: "flex-start",
-                color: "white",
-                bgcolor: isHomeActive ? "rgba(255,255,255,0.2)" : undefined,
+                color: "#000000",
+                bgcolor: isHomeActive ? "rgba(0,0,0,0.12)" : undefined,
                 mb: 1,
-                "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                "&:hover": { bgcolor: "rgba(0,0,0,0.15)" },
                 "& .MuiButton-endIcon": { marginLeft: "auto" },
               }}
             >
@@ -226,11 +227,9 @@ export default function AppSectionLayout({
                 onClick={() => setDevicesMenuOpen(!devicesMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: isDevicesActive
-                    ? "rgba(255,255,255,0.1)"
-                    : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  color: "#000000",
+                  bgcolor: isDevicesActive ? "rgba(0,0,0,0.08)" : undefined,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -247,11 +246,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/devices")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Danh sách thiết bị
@@ -263,11 +262,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/devices/reports")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Báo cáo thiết bị
@@ -286,11 +285,9 @@ export default function AppSectionLayout({
                 onClick={() => setInventoryMenuOpen(!inventoryMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: isInventoryActive
-                    ? "rgba(255,255,255,0.1)"
-                    : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  color: "#000000",
+                  bgcolor: isInventoryActive ? "rgba(0,0,0,0.08)" : undefined,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -307,11 +304,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/warehouse")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Danh sách kho thiết bị
@@ -324,46 +321,14 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/warehouse/stock-entry")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Nhập kho
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<RemoveIcon />}
-                onClick={() => router.push("/inventory/export")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Xuất kho
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<AssessmentIcon />}
-                onClick={() => router.push("/inventory/audit")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Kiểm kê
               </Button>
             </Box>
           )}
@@ -379,11 +344,9 @@ export default function AppSectionLayout({
                 onClick={() => setMaintenanceMenuOpen(!maintenanceMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: isMaintenanceActive
-                    ? "rgba(255,255,255,0.1)"
-                    : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  color: "#000000",
+                  bgcolor: isMaintenanceActive ? "rgba(0,0,0,0.08)" : undefined,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -400,14 +363,14 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/devices/maintenance")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   bgcolor: pathname?.startsWith("/devices/maintenance")
-                    ? "rgba(255,255,255,0.2)"
+                    ? "rgba(0,0,0,0.12)"
                     : undefined,
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.3)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.15)" },
                 }}
               >
                 Danh sách thiết bị cần bảo trì
@@ -419,62 +382,14 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/maintenance/schedule")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Lịch trình
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<BuildIcon />}
-                onClick={() => router.push("/maintenance/tasks")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Công việc
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<CheckCircleIcon />}
-                onClick={() => router.push("/maintenance/completed")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Hoàn thành
-              </Button>
-              <Button
-                fullWidth
-                size="small"
-                startIcon={<WarningIcon />}
-                onClick={() => router.push("/maintenance/overdue")}
-                sx={{
-                  justifyContent: "flex-start",
-                  color: "white",
-                  opacity: 0.9,
-                  fontSize: "0.875rem",
-                  py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
-                }}
-              >
-                Quá hạn
               </Button>
             </Box>
           )}
@@ -490,11 +405,9 @@ export default function AppSectionLayout({
                 onClick={() => setReportsMenuOpen(!reportsMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: isReportsActive
-                    ? "rgba(255,255,255,0.1)"
-                    : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  color: "#000000",
+                  bgcolor: isReportsActive ? "rgba(0,0,0,0.08)" : undefined,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -511,11 +424,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/reports/summary")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Báo cáo tổng
@@ -527,11 +440,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/reports/performance")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Hiệu suất
@@ -543,11 +456,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/reports/maintenance")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Bảo trì
@@ -559,11 +472,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/reports/inventory")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Tồn kho
@@ -575,11 +488,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/reports/users")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Người dùng
@@ -598,9 +511,9 @@ export default function AppSectionLayout({
                 onClick={() => setUsersMenuOpen(!usersMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
-                  bgcolor: isUsersActive ? "rgba(255,255,255,0.1)" : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  color: "#000000",
+                  bgcolor: isUsersActive ? "rgba(0,0,0,0.08)" : undefined,
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -617,11 +530,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/users")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Danh sách
@@ -634,11 +547,11 @@ export default function AppSectionLayout({
                   onClick={() => router.push("/users/password")}
                   sx={{
                     justifyContent: "flex-start",
-                    color: "white",
+                    color: "#000000",
                     opacity: 0.9,
                     fontSize: "0.875rem",
                     py: 0.5,
-                    "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                   }}
                 >
                   Quản lý mật khẩu
@@ -662,11 +575,11 @@ export default function AppSectionLayout({
                 onClick={() => setNotificationsMenuOpen(!notificationsMenuOpen)}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   bgcolor: isNotificationsActive
-                    ? "rgba(255,255,255,0.1)"
+                    ? "rgba(0,0,0,0.08)"
                     : undefined,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.2)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.12)" },
                   "& .MuiButton-endIcon": { marginLeft: "auto" },
                 }}
               >
@@ -683,11 +596,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/notifications/all")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Tất cả
@@ -699,11 +612,11 @@ export default function AppSectionLayout({
                 onClick={() => router.push("/notifications/alerts")}
                 sx={{
                   justifyContent: "flex-start",
-                  color: "white",
+                  color: "#000000",
                   opacity: 0.9,
                   fontSize: "0.875rem",
                   py: 0.5,
-                  "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                  "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
                 }}
               >
                 Cảnh báo
@@ -718,9 +631,9 @@ export default function AppSectionLayout({
               onClick={() => router.push("/borrow-return")}
               sx={{
                 justifyContent: "flex-start",
-                color: "white",
+                color: "#000000",
                 mb: 1,
-                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
               }}
             >
               Mượn - Trả thiết bị
@@ -734,9 +647,9 @@ export default function AppSectionLayout({
               onClick={() => router.push("/departments")}
               sx={{
                 justifyContent: "flex-start",
-                color: "white",
+                color: "#000000",
                 mb: 1,
-                "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+                "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
               }}
             >
               Quản lý phòng ban
@@ -752,11 +665,10 @@ export default function AppSectionLayout({
           onClick={() => router.push("/profile")}
           sx={{
             justifyContent: "flex-start",
-            color: "white",
-            bgcolor:
-              pathname === "/profile" ? "rgba(255,255,255,0.2)" : undefined,
+            color: "#1565c0",
+            bgcolor: pathname === "/profile" ? "rgba(0,0,0,0.12)" : undefined,
             mb: 1,
-            "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+            "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
           }}
         >
           Thông tin cá nhân
@@ -767,8 +679,8 @@ export default function AppSectionLayout({
           onClick={handleLogout}
           sx={{
             justifyContent: "flex-start",
-            color: "white",
-            "&:hover": { bgcolor: "rgba(255,255,255,0.1)" },
+            color: "#1565c0",
+            "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
           }}
         >
           Đăng xuất
@@ -791,7 +703,7 @@ export default function AppSectionLayout({
             width: 280,
             flexShrink: 0,
             height: "100vh",
-            bgcolor: "primary.main",
+            bgcolor: "#90caf9",
             position: "sticky",
             top: 0,
             overflow: "hidden",
@@ -817,14 +729,14 @@ export default function AppSectionLayout({
               top: 8,
               left: 8,
               zIndex: (t) => t.zIndex.drawer + 1,
-              bgcolor: "primary.main",
+              bgcolor: "#90caf9",
               borderRadius: 1,
             }}
           >
             <Button
               onClick={toggleSidebar}
               startIcon={<MenuIcon />}
-              sx={{ color: "white", minWidth: 0, px: 1, py: 0.5 }}
+              sx={{ color: "#1565c0", minWidth: 0, px: 1, py: 0.5 }}
             ></Button>
           </Box>
         )}
@@ -833,8 +745,8 @@ export default function AppSectionLayout({
         {/* Footer */}
         <Box
           sx={{
-            bgcolor: "primary.main",
-            color: "white",
+            bgcolor: "#90caf9",
+            color: "#000000",
             p: 4,
             mt: "auto",
           }}
@@ -881,7 +793,7 @@ export default function AppSectionLayout({
                 </Typography>
               </Box>
             </Box>
-            <Divider sx={{ borderColor: "rgba(255,255,255,0.3)", my: 3 }} />
+            <Divider sx={{ borderColor: "rgba(0,0,0,0.2)", my: 3 }} />
             <Typography
               variant="body2"
               sx={{ textAlign: "center", opacity: 0.8 }}
