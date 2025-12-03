@@ -86,6 +86,32 @@ export interface DeviceFormData {
   transferredToWarehouseByName?: string; // Tên người chuyển vào kho
 }
 
+export const isDeviceCodeExists = async (
+  code: string,
+  excludeId?: string
+): Promise<boolean> => {
+  try {
+    // Check in devices collection
+    const devicesSnapshot = await getDocs(collection(db, "devices"));
+    for (const doc of devicesSnapshot.docs) {
+      if (excludeId && doc.id === excludeId) continue;
+      if (doc.data().code === code) return true;
+    }
+
+    // Check in warehouse collection
+    const warehouseSnapshot = await getDocs(collection(db, "warehouse"));
+    for (const doc of warehouseSnapshot.docs) {
+      if (excludeId && doc.id === excludeId) continue;
+      if (doc.data().code === code) return true;
+    }
+
+    return false;
+  } catch (error) {
+    console.error("Error checking device code: ", error);
+    return false;
+  }
+};
+
 // Add new device
 export const addDevice = async (
   deviceData: DeviceFormData, // Dữ liệu thiết bị từ form
@@ -93,6 +119,14 @@ export const addDevice = async (
   userName?: string // Tên hiển thị của người dùng (không bắt buộc)
 ): Promise<string> => {
   try {
+    // Check if device code already exists
+    const codeExists = await isDeviceCodeExists(deviceData.code);
+    if (codeExists) {
+      throw new Error(
+        `Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`
+      );
+    }
+
     const cleanedData = Object.fromEntries(
       Object.entries(deviceData).filter(
         ([_, value]) => value !== null && value !== undefined && value !== ""
@@ -112,6 +146,9 @@ export const addDevice = async (
     return docRef.id;
   } catch (error) {
     console.error("Error adding device: ", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Không thể thêm thiết bị. Vui lòng thử lại.");
   }
 };
@@ -172,15 +209,28 @@ export const updateDevice = async (
   userName?: string
 ): Promise<void> => {
   try {
+    // Check if device code already exists (if code is being updated)
+    if (deviceData.code) {
+      const codeExists = await isDeviceCodeExists(deviceData.code, id);
+      if (codeExists) {
+        throw new Error(
+          `Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`
+        );
+      }
+    }
+
     const deviceRef = doc(db, "devices", id);
     await updateDoc(deviceRef, {
-      ...deviceData, 
-      updatedAt: new Date(), 
-      updatedBy: userId || "Không xác định", 
-      updatedByName: userName || "Không xác định", 
+      ...deviceData,
+      updatedAt: new Date(),
+      updatedBy: userId || "Không xác định",
+      updatedByName: userName || "Không xác định",
     });
   } catch (error) {
     console.error("Error updating device: ", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Không thể cập nhật thiết bị. Vui lòng thử lại.");
   }
 };

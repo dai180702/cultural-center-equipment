@@ -304,8 +304,10 @@ export default function DevicesPage() {
     try {
       setLoadingWarehouse(true);
       const warehouseDevicesData = await getWarehouseDevices();
-      setAllWarehouseDevices(warehouseDevicesData);
-      setWarehouseDevices(warehouseDevicesData);
+      // Filter out deleted devices - only show active devices
+      const activeDevices = warehouseDevicesData.filter(device => !device.isDeleted);
+      setAllWarehouseDevices(activeDevices);
+      setWarehouseDevices(activeDevices);
       setWarehouseSearchTerm(""); // Reset search when loading
     } catch (err) {
       console.error("Error loading warehouse devices:", err);

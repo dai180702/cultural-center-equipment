@@ -50,7 +50,9 @@ import {
   Lock as LockIcon,
   Visibility as VisibilityIcon,
   VisibilityOff as VisibilityOffIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from "@mui/icons-material";
+import { uploadUserAvatar } from "@/services/storage";
 import { useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
@@ -114,6 +116,10 @@ export default function ProfilePage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Avatar upload states
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   const [formData, setFormData] = useState<{
     employeeId: string;
@@ -217,6 +223,44 @@ export default function ProfilePage() {
       setError("Không thể tải thông tin cá nhân");
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Xử lý upload ảnh đại diện
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user?.id) return;
+
+    // Kiểm tra loại file
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Vui lòng chọn file ảnh");
+      return;
+    }
+    // Kiểm tra kích thước (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      setAvatarError("");
+      
+      // Upload ảnh lên Firebase Storage
+      const avatarUrl = await uploadUserAvatar(user.id, file);
+      
+      // Cập nhật avatar URL vào user profile
+      await updateUser(user.id, { avatar: avatarUrl });
+      
+      // Reload user data
+      await loadUserProfile();
+      
+      setSuccess("Cập nhật ảnh đại diện thành công!");
+    } catch (err) {
+      console.error("Lỗi upload avatar:", err);
+      setAvatarError("Không thể tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -556,16 +600,58 @@ export default function ProfilePage() {
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 4 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3, mb: 3 }}>
-            <Avatar
-              sx={{
-                width: 80,
-                height: 80,
-                bgcolor: "primary.main",
-                fontSize: "2rem",
-              }}
-            >
-              {user.fullName.charAt(0)}
-            </Avatar>
+            <Box sx={{ position: "relative" }}>
+              <Avatar
+                src={user.avatar}
+                sx={{
+                  width: 80,
+                  height: 80,
+                  bgcolor: "primary.main",
+                  fontSize: "2rem",
+                }}
+              >
+                {user.fullName.charAt(0)}
+              </Avatar>
+              <input
+                accept="image/*"
+                style={{ display: "none" }}
+                id="avatar-upload-profile"
+                type="file"
+                onChange={handleAvatarUpload}
+                disabled={uploadingAvatar}
+              />
+              <label htmlFor="avatar-upload-profile">
+                <IconButton
+                  component="span"
+                  disabled={uploadingAvatar}
+                  sx={{
+                    position: "absolute",
+                    bottom: -5,
+                    right: -5,
+                    bgcolor: "primary.main",
+                    color: "white",
+                    width: 32,
+                    height: 32,
+                    "&:hover": { bgcolor: "primary.dark" },
+                  }}
+                >
+                  {uploadingAvatar ? (
+                    <CircularProgress size={16} color="inherit" />
+                  ) : (
+                    <PhotoCameraIcon sx={{ fontSize: 16 }} />
+                  )}
+                </IconButton>
+              </label>
+              {avatarError && (
+                <Typography
+                  variant="caption"
+                  color="error"
+                  sx={{ position: "absolute", bottom: -20, left: 0, whiteSpace: "nowrap" }}
+                >
+                  {avatarError}
+                </Typography>
+              )}
+            </Box>
             <Box sx={{ flex: 1 }}>
               <Typography variant="h5" fontWeight="bold" gutterBottom>
                 {user.fullName}

@@ -40,6 +40,9 @@ export interface User {
   notes?: string;
   createdAt: string;
   updatedAt: string;
+  // Thông tin người tạo
+  createdBy?: string; // ID của người tạo
+  createdByName?: string; // Tên người tạo
 }
 
 export interface UserFormData {
@@ -235,14 +238,52 @@ export const getUsersByFilters = async (
   }
 };
 
-// Thêm nhân viên mới
-export const addUser = async (userData: UserFormData): Promise<string> => {
+// Kiểm tra mã nhân viên đã tồn tại chưa
+export const isEmployeeIdExists = async (
+  employeeId: string,
+  excludeId?: string
+): Promise<boolean> => {
   try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("employeeId", "==", employeeId));
+    const querySnapshot = await getDocs(q);
+
+    if (querySnapshot.empty) return false;
+
+    // Nếu có excludeId (đang cập nhật), kiểm tra xem có phải chính nó không
+    if (excludeId) {
+      return querySnapshot.docs.some((doc) => doc.id !== excludeId);
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error checking employee ID:", error);
+    return false;
+  }
+};
+
+// Thêm nhân viên mới
+export const addUser = async (
+  userData: UserFormData,
+  createdBy?: string,
+  createdByName?: string
+): Promise<string> => {
+  try {
+    // Kiểm tra mã nhân viên trùng lặp
+    const employeeIdExists = await isEmployeeIdExists(userData.employeeId);
+    if (employeeIdExists) {
+      throw new Error(
+        `Mã nhân viên "${userData.employeeId}" đã tồn tại. Vui lòng sử dụng mã khác.`
+      );
+    }
+
     const now = new Date().toISOString();
     const userRef = await addDoc(collection(db, "users"), {
       ...userData,
       createdAt: now,
       updatedAt: now,
+      createdBy: createdBy || undefined,
+      createdByName: createdByName || undefined,
     });
 
     return userRef.id;
@@ -281,6 +322,16 @@ export const updateUser = async (
   userData: Partial<UserFormData>
 ): Promise<void> => {
   try {
+    // Kiểm tra mã nhân viên trùng lặp (nếu đang cập nhật mã)
+    if (userData.employeeId) {
+      const employeeIdExists = await isEmployeeIdExists(userData.employeeId, id);
+      if (employeeIdExists) {
+        throw new Error(
+          `Mã nhân viên "${userData.employeeId}" đã tồn tại. Vui lòng sử dụng mã khác.`
+        );
+      }
+    }
+
     const userRef = doc(db, "users", id);
     await updateDoc(userRef, {
       ...userData,

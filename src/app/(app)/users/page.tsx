@@ -1420,7 +1420,10 @@ export default function UsersPage() {
                                   gap: 2,
                                 }}
                               >
-                                <Avatar sx={{ bgcolor: "primary.main" }}>
+                                <Avatar 
+                                  src={user.avatar} 
+                                  sx={{ bgcolor: "primary.main" }}
+                                >
                                   {user.fullName.charAt(0)}
                                 </Avatar>
                                 <Box>

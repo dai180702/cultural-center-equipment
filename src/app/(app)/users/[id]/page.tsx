@@ -65,7 +65,10 @@ import {
   Refresh as RefreshIcon,
   CalendarToday as CalendarIcon2,
   Add as AddIcon,
+  PhotoCamera as PhotoCameraIcon,
 } from "@mui/icons-material";
+import { uploadUserAvatar } from "@/services/storage";
+import { updateUser } from "@/services/users";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -101,6 +104,10 @@ export default function UserDetailPage() {
   const [usersMenuOpen, setUsersMenuOpen] = useState(true);
   const [notificationsMenuOpen, setNotificationsMenuOpen] = useState(false);
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
+  
+  // State cho upload avatar
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [avatarError, setAvatarError] = useState("");
 
   useEffect(() => {
     if (isMobile) setSidebarOpen(false);
@@ -142,6 +149,43 @@ export default function UserDetailPage() {
       setUser(userData);
     } catch (error) {
       console.error("Lỗi khi tải thông tin nhân viên:", error);
+    }
+  };
+
+  // Xử lý upload ảnh đại diện
+  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Kiểm tra loại file
+    if (!file.type.startsWith("image/")) {
+      setAvatarError("Vui lòng chọn file ảnh");
+      return;
+    }
+    // Kiểm tra kích thước (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setAvatarError("Ảnh không được vượt quá 5MB");
+      return;
+    }
+
+    try {
+      setUploadingAvatar(true);
+      setAvatarError("");
+      
+      // Upload ảnh lên Firebase Storage
+      const avatarUrl = await uploadUserAvatar(userId, file);
+      
+      // Cập nhật avatar URL vào user profile
+      await updateUser(userId, { avatar: avatarUrl });
+      
+      // Reload user data
+      await loadUser();
+      
+    } catch (err) {
+      console.error("Lỗi upload avatar:", err);
+      setAvatarError("Không thể tải ảnh lên. Vui lòng thử lại.");
+    } finally {
+      setUploadingAvatar(false);
     }
   };
 
@@ -579,16 +623,58 @@ export default function UserDetailPage() {
               <Box
                 sx={{ display: "flex", alignItems: "center", gap: 3, mb: 3 }}
               >
-                <Avatar
-                  sx={{
-                    width: 80,
-                    height: 80,
-                    bgcolor: "primary.main",
-                    fontSize: "2rem",
-                  }}
-                >
-                  {user.fullName.charAt(0)}
-                </Avatar>
+                <Box sx={{ position: "relative" }}>
+                  <Avatar
+                    src={user.avatar}
+                    sx={{
+                      width: 80,
+                      height: 80,
+                      bgcolor: "primary.main",
+                      fontSize: "2rem",
+                    }}
+                  >
+                    {user.fullName.charAt(0)}
+                  </Avatar>
+                  <input
+                    accept="image/*"
+                    style={{ display: "none" }}
+                    id="avatar-upload-detail"
+                    type="file"
+                    onChange={handleAvatarUpload}
+                    disabled={uploadingAvatar}
+                  />
+                  <label htmlFor="avatar-upload-detail">
+                    <IconButton
+                      component="span"
+                      disabled={uploadingAvatar}
+                      sx={{
+                        position: "absolute",
+                        bottom: -5,
+                        right: -5,
+                        bgcolor: "primary.main",
+                        color: "white",
+                        width: 32,
+                        height: 32,
+                        "&:hover": { bgcolor: "primary.dark" },
+                      }}
+                    >
+                      {uploadingAvatar ? (
+                        <CircularProgress size={16} color="inherit" />
+                      ) : (
+                        <PhotoCameraIcon sx={{ fontSize: 16 }} />
+                      )}
+                    </IconButton>
+                  </label>
+                  {avatarError && (
+                    <Typography
+                      variant="caption"
+                      color="error"
+                      sx={{ position: "absolute", bottom: -20, left: 0, whiteSpace: "nowrap" }}
+                    >
+                      {avatarError}
+                    </Typography>
+                  )}
+                </Box>
                 <Box sx={{ flex: 1 }}>
                   <Typography variant="h5" fontWeight="bold" gutterBottom>
                     {user.fullName}
@@ -835,6 +921,13 @@ export default function UserDetailPage() {
                     {formatDate(user.updatedAt)}
                   </Typography>
                 </Box>
+                {user.createdByName && (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Người tạo:</strong> {user.createdByName}
+                    </Typography>
+                  </Box>
+                )}
               </Box>
             </CardContent>
           </Card>

@@ -47,6 +47,7 @@ import {
   getWarehouseDevices,
   deleteWarehouseDevice,
   searchWarehouseDevices,
+  moveDeviceFromWarehouseToDevices,
 } from "@/services/warehouse";
 import { Device } from "@/services/devices";
 import {
@@ -60,6 +61,7 @@ import {
   FileDownload as ExportIcon,
   Assessment as ReportIcon,
   Clear as ClearIcon,
+  MoveUp as MoveUpIcon,
 } from "@mui/icons-material";
 import { formatDate } from "@/lib/formatDate";
 
@@ -108,6 +110,10 @@ export default function WarehouseManagementPage() {
     null
   );
   const [reportDialogOpen, setReportDialogOpen] = useState(false);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [deviceToMove, setDeviceToMove] = useState<Device | null>(null);
+  const [moveDepartment, setMoveDepartment] = useState("");
+  const [moving, setMoving] = useState(false);
 
   useEffect(() => {
     if (!currentUser) {
@@ -229,6 +235,36 @@ export default function WarehouseManagementPage() {
       setError("Không thể xóa thiết bị khỏi kho");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleMoveClick = (device: Device) => {
+    setDeviceToMove(device);
+    setMoveDepartment(device.department || "");
+    setMoveDialogOpen(true);
+  };
+
+  const handleMoveConfirm = async () => {
+    if (!deviceToMove?.id) return;
+
+    try {
+      setMoving(true);
+      await moveDeviceFromWarehouseToDevices(
+        deviceToMove.id,
+        currentUser?.uid,
+        currentUser?.displayName || currentUser?.email || undefined,
+        moveDepartment
+      );
+      setSuccess("Thiết bị đã được chuyển lên phòng thành công");
+      setMoveDialogOpen(false);
+      setDeviceToMove(null);
+      setMoveDepartment("");
+      // Reload data from server to ensure consistency
+      await loadDevices();
+    } catch (err) {
+      setError("Không thể chuyển thiết bị lên phòng");
+    } finally {
+      setMoving(false);
     }
   };
 
@@ -873,6 +909,36 @@ export default function WarehouseManagementPage() {
             disabled={deleting}
           >
             {deleting ? <CircularProgress size={24} /> : "Xóa"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Move to Department Dialog */}
+      <Dialog open={moveDialogOpen} onClose={() => setMoveDialogOpen(false)}>
+        <DialogTitle>Chuyển thiết bị lên phòng</DialogTitle>
+        <DialogContent>
+          <Typography gutterBottom>
+            Chuyển thiết bị <strong>{deviceToMove?.name}</strong> từ kho lên
+            phòng ban sử dụng. Thiết bị sẽ không còn hiển thị trong kho nữa.
+          </Typography>
+          <TextField
+            fullWidth
+            label="Phòng ban"
+            placeholder="Nhập tên phòng ban (ví dụ: Phòng Kỹ thuật)"
+            value={moveDepartment}
+            onChange={(e) => setMoveDepartment(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setMoveDialogOpen(false)}>Hủy</Button>
+          <Button
+            onClick={handleMoveConfirm}
+            color="success"
+            variant="contained"
+            disabled={moving}
+          >
+            {moving ? <CircularProgress size={24} /> : "Chuyển"}
           </Button>
         </DialogActions>
       </Dialog>

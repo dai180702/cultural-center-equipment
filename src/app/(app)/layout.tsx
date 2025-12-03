@@ -11,6 +11,7 @@ import {
   useTheme,
   Container,
   Divider,
+  Avatar,
 } from "@mui/material";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import {
@@ -110,6 +111,23 @@ export default function AppSectionLayout({
 
   const permissions = getPermissions(currentUserRole);
 
+  const getRoleText = (role: string) => {
+    switch (role) {
+      case "director":
+        return "Giám đốc";
+      case "deputy_director":
+        return "Phó giám đốc";
+      case "manager":
+        return "Trưởng phòng";
+      case "staff":
+        return "Nhân viên";
+      case "technician":
+        return "Kỹ thuật viên";
+      default:
+        return role;
+    }
+  };
+
   const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
   const handleLogout = async () => {
     await logout();
@@ -168,21 +186,17 @@ export default function AppSectionLayout({
           },
         }}
       >
-        <Box
+        <Avatar
+          src={currentUserProfile?.avatar}
           sx={{
             width: 40,
             height: 40,
-            borderRadius: "50%",
             bgcolor: "#1976d2",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: "white",
             fontWeight: "bold",
           }}
         >
           {currentUserProfile?.fullName?.charAt(0)?.toUpperCase() || "P"}
-        </Box>
+        </Avatar>
         <Box sx={{ flex: 1 }}>
           <Typography variant="body1" fontWeight="medium">
             {currentUserProfile?.fullName || "Người dùng"}
@@ -190,9 +204,14 @@ export default function AppSectionLayout({
           <Typography variant="caption" sx={{ opacity: 0.8 }}>
             {currentUserProfile?.department || ""}
           </Typography>
-          <Typography variant="caption" sx={{ opacity: 0.8, display: "block" }}>
-            {currentUser?.email}
-          </Typography>
+          {currentUserProfile?.role && (
+            <Typography
+              variant="caption"
+              sx={{ opacity: 0.8, display: "block" }}
+            >
+              {getRoleText(currentUserProfile.role)}
+            </Typography>
+          )}
         </Box>
       </Box>
 

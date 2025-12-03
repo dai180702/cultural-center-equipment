@@ -64,7 +64,10 @@ import {
   Refresh as RefreshIcon,
   CalendarToday as CalendarIcon2,
   Edit as EditIcon,
+  PhotoCamera as PhotoCameraIcon,
+  Delete as DeleteIcon,
 } from "@mui/icons-material";
+import { uploadUserAvatar } from "@/services/storage";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import { useRouter, useParams, usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
@@ -136,6 +139,12 @@ export default function EditUserPage() {
   const [actionPwdOpen, setActionPwdOpen] = useState(false);
   const [actionPwd, setActionPwd] = useState("");
   const [actionPwdError, setActionPwdError] = useState("");
+  
+  // State cho avatar
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>("");
+  const [currentAvatar, setCurrentAvatar] = useState<string>("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Sidebar state
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -237,6 +246,12 @@ export default function EditUserPage() {
             }
           }
         }
+
+        // Load avatar
+        if (userData.avatar) {
+          setCurrentAvatar(userData.avatar);
+          setAvatarPreview(userData.avatar);
+        }
       }
     } catch (error) {
       console.error("Lỗi khi tải thông tin nhân viên:", error);
@@ -319,6 +334,32 @@ export default function EditUserPage() {
     }
   };
 
+  // Xử lý chọn ảnh đại diện
+  const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Kiểm tra loại file
+      if (!file.type.startsWith("image/")) {
+        setErrors((prev) => ({ ...prev, avatar: "Vui lòng chọn file ảnh" }));
+        return;
+      }
+      // Kiểm tra kích thước (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setErrors((prev) => ({ ...prev, avatar: "Ảnh không được vượt quá 5MB" }));
+        return;
+      }
+      setAvatarFile(file);
+      setAvatarPreview(URL.createObjectURL(file));
+      setErrors((prev) => ({ ...prev, avatar: "" }));
+    }
+  };
+
+  // Xóa ảnh đại diện
+  const handleRemoveAvatar = () => {
+    setAvatarFile(null);
+    setAvatarPreview("");
+  };
+
   // Validation
   const validateStep = (step: number): boolean => {
     const newErrors: Record<string, string> = {};
@@ -363,6 +404,21 @@ export default function EditUserPage() {
     }
 
     try {
+      // Upload avatar nếu có file mới
+      let avatarUrl = currentAvatar;
+      if (avatarFile) {
+        setUploadingAvatar(true);
+        try {
+          avatarUrl = await uploadUserAvatar(userId, avatarFile);
+        } catch (err) {
+          console.error("Lỗi upload avatar:", err);
+          setErrors((prev) => ({ ...prev, avatar: "Không thể tải ảnh lên" }));
+          setUploadingAvatar(false);
+          return;
+        }
+        setUploadingAvatar(false);
+      }
+
       // Loại bỏ skill rỗng
       const cleanSkills = formData.skills.filter(
         (skill) => skill.trim() !== ""
@@ -371,6 +427,8 @@ export default function EditUserPage() {
       const userData = {
         ...formData,
         skills: cleanSkills,
+        // Thêm avatar URL
+        avatar: avatarUrl || undefined,
         // Loại bỏ emergency contact nếu không có thông tin
         emergencyContact: formData.emergencyContact.name.trim()
           ? formData.emergencyContact
@@ -661,6 +719,72 @@ export default function EditUserPage() {
                   {error}
                 </Alert>
               )}
+              {/* Ảnh đại diện */}
+              <Paper sx={{ p: 3, mb: 3 }}>
+                <Typography variant="h6" gutterBottom>
+                  Ảnh đại diện
+                </Typography>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 3,
+                    flexWrap: "wrap",
+                  }}
+                >
+                  <Avatar
+                    src={avatarPreview}
+                    sx={{ width: 120, height: 120, fontSize: 48 }}
+                  >
+                    {formData.fullName?.charAt(0)?.toUpperCase() || "U"}
+                  </Avatar>
+                  <Box>
+                    <input
+                      accept="image/*"
+                      style={{ display: "none" }}
+                      id="avatar-upload"
+                      type="file"
+                      onChange={handleAvatarChange}
+                    />
+                    <label htmlFor="avatar-upload">
+                      <Button
+                        variant="outlined"
+                        component="span"
+                        startIcon={<PhotoCameraIcon />}
+                        sx={{ mb: 1 }}
+                      >
+                        {avatarPreview ? "Đổi ảnh" : "Chọn ảnh"}
+                      </Button>
+                    </label>
+                    {avatarPreview && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        startIcon={<DeleteIcon />}
+                        onClick={handleRemoveAvatar}
+                        sx={{ ml: 1, mb: 1 }}
+                      >
+                        Xóa ảnh
+                      </Button>
+                    )}
+                    <Typography variant="caption" display="block" color="text.secondary">
+                      Định dạng: JPG, PNG, GIF. Tối đa 5MB.
+                    </Typography>
+                    {errors.avatar && (
+                      <Typography variant="caption" color="error">
+                        {errors.avatar}
+                      </Typography>
+                    )}
+                    {uploadingAvatar && (
+                      <Box sx={{ display: "flex", alignItems: "center", mt: 1 }}>
+                        <CircularProgress size={20} sx={{ mr: 1 }} />
+                        <Typography variant="caption">Đang tải ảnh lên...</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              </Paper>
+
               {/* Thông tin cơ bản */}
               <Paper sx={{ p: 3, mb: 3 }}>
                 <Typography variant="h6" gutterBottom>

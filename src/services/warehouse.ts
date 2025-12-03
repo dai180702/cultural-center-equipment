@@ -8,7 +8,7 @@ import {
   updateDoc,
   deleteDoc,
 } from "firebase/firestore";
-import { Device, DeviceFormData } from "./devices";
+import { Device, DeviceFormData, isDeviceCodeExists } from "./devices";
 
 // Add device to warehouse
 export const addDeviceToWarehouse = async (
@@ -17,6 +17,12 @@ export const addDeviceToWarehouse = async (
   userName?: string
 ): Promise<string> => {
   try {
+    // Check if device code already exists
+    const codeExists = await isDeviceCodeExists(deviceData.code);
+    if (codeExists) {
+      throw new Error(`Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`);
+    }
+
     const cleanedData = Object.fromEntries(
       Object.entries(deviceData).filter(
         ([_, value]) => value !== null && value !== undefined && value !== ""
@@ -36,6 +42,9 @@ export const addDeviceToWarehouse = async (
     return docRef.id;
   } catch (error) {
     console.error("Error adding device to warehouse: ", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Không thể thêm thiết bị vào kho. Vui lòng thử lại.");
   }
 };
@@ -102,6 +111,14 @@ export const updateWarehouseDevice = async (
   userName?: string
 ): Promise<void> => {
   try {
+    // Check if device code already exists (if code is being updated)
+    if (deviceData.code) {
+      const codeExists = await isDeviceCodeExists(deviceData.code, id);
+      if (codeExists) {
+        throw new Error(`Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`);
+      }
+    }
+
     const deviceRef = doc(db, "warehouse", id);
     await updateDoc(deviceRef, {
       ...deviceData,
@@ -111,11 +128,14 @@ export const updateWarehouseDevice = async (
     });
   } catch (error) {
     console.error("Error updating warehouse device: ", error);
+    if (error instanceof Error) {
+      throw error;
+    }
     throw new Error("Không thể cập nhật thiết bị trong kho. Vui lòng thử lại.");
   }
 };
 
-// Delete warehouse device (soft delete)
+// Delete warehouse device (soft delete - mark as deleted)
 export const deleteWarehouseDevice = async (
   id: string,
   userId?: string,
@@ -134,6 +154,17 @@ export const deleteWarehouseDevice = async (
     });
   } catch (error) {
     console.error("Error deleting warehouse device: ", error);
+    throw new Error("Không thể xóa thiết bị khỏi kho. Vui lòng thử lại.");
+  }
+};
+
+// Hard delete warehouse device (permanently remove from database)
+export const hardDeleteWarehouseDevice = async (id: string): Promise<void> => {
+  try {
+    const deviceRef = doc(db, "warehouse", id);
+    await deleteDoc(deviceRef);
+  } catch (error) {
+    console.error("Error hard deleting warehouse device: ", error);
     throw new Error("Không thể xóa thiết bị khỏi kho. Vui lòng thử lại.");
   }
 };
@@ -183,8 +214,8 @@ export const moveDeviceFromWarehouseToDevices = async (
       userName || warehouseDevice.createdByName || "Người dùng"
     );
 
-    // Delete from warehouse
-    await deleteWarehouseDevice(warehouseDeviceId);
+    // Delete from warehouse (hard delete - completely remove)
+    await hardDeleteWarehouseDevice(warehouseDeviceId);
 
     return newDeviceId;
   } catch (error) {

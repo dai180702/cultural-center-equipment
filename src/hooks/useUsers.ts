@@ -95,7 +95,12 @@ export const useUsers = () => {
 
   // Thêm nhân viên mới
   const createUser = useCallback(
-    async (userData: UserFormData, password?: string) => {
+    async (
+      userData: UserFormData,
+      password?: string,
+      createdBy?: string,
+      createdByName?: string
+    ) => {
       try {
         setLoading(true);
         setError(null);
@@ -107,7 +112,7 @@ export const useUsers = () => {
           userPayload = { ...userPayload, uid };
         }
 
-        const userId = await addUser(userPayload);
+        const userId = await addUser(userPayload, createdBy, createdByName);
         await fetchUsers(); // Refresh danh sách
         return userId;
       } catch (err) {

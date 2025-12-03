@@ -63,7 +63,7 @@ import { useState, useEffect } from "react";
 import { useUsers } from "@/hooks/useUsers";
 import { DEFAULT_DEPARTMENTS } from "@/lib/departments";
 import { useAuth } from "@/contexts/AuthContext";
-import { getUserByEmail } from "@/services/users";
+import { getUserByEmail, getUserByEmployeeId, User } from "@/services/users";
 import {
   getAllProvinces,
   getDistrictsByProvince,
@@ -120,13 +120,23 @@ export default function NewUserPage() {
   const [actionPwdError, setActionPwdError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [checkingEmail, setCheckingEmail] = useState(false);
+  const [checkingEmployeeId, setCheckingEmployeeId] = useState(false);
+
+  // Thông tin người tạo (người đang đăng nhập)
+  const [currentUserProfile, setCurrentUserProfile] = useState<User | null>(
+    null
+  );
 
   // State cho menu tìm kiếm địa chỉ
   const [selectedProvince, setSelectedProvince] = useState("");
   const [selectedDistrict, setSelectedDistrict] = useState("");
   const [availableDistricts, setAvailableDistricts] = useState<string[]>([]);
-  const [provinceAnchorEl, setProvinceAnchorEl] = useState<null | HTMLElement>(null);
-  const [districtAnchorEl, setDistrictAnchorEl] = useState<null | HTMLElement>(null);
+  const [provinceAnchorEl, setProvinceAnchorEl] = useState<null | HTMLElement>(
+    null
+  );
+  const [districtAnchorEl, setDistrictAnchorEl] = useState<null | HTMLElement>(
+    null
+  );
   const [provinceSearchTerm, setProvinceSearchTerm] = useState("");
   const [districtSearchTerm, setDistrictSearchTerm] = useState("");
 
@@ -144,6 +154,20 @@ export default function NewUserPage() {
       setUsersMenuOpen(true);
     }
   }, [pathname]);
+
+  // Load thông tin người tạo (người đang đăng nhập)
+  useEffect(() => {
+    const loadCurrentUserProfile = async () => {
+      if (!currentUser?.email) return;
+      try {
+        const profile = await getUserByEmail(currentUser.email);
+        setCurrentUserProfile(profile);
+      } catch (error) {
+        console.error("Lỗi khi tải thông tin người dùng:", error);
+      }
+    };
+    loadCurrentUserProfile();
+  }, [currentUser?.email]);
 
   const handleLogout = async () => {
     await logout();
@@ -163,7 +187,7 @@ export default function NewUserPage() {
     setSelectedProvince(province);
     const districts = getDistrictsByProvince(province);
     setAvailableDistricts(districts);
-    
+
     if (selectedDistrict && !districts.includes(selectedDistrict)) {
       setSelectedDistrict("");
       handleInputChange("address", formatAddress(province, ""));
@@ -175,6 +199,24 @@ export default function NewUserPage() {
   const handleDistrictChange = (district: string) => {
     setSelectedDistrict(district);
     handleInputChange("address", formatAddress(selectedProvince, district));
+  };
+
+  const checkEmployeeIdExists = async (
+    employeeId: string
+  ): Promise<boolean> => {
+    if (!employeeId.trim()) {
+      return false;
+    }
+    try {
+      setCheckingEmployeeId(true);
+      const existingUser = await getUserByEmployeeId(employeeId.trim());
+      return existingUser !== null;
+    } catch (error) {
+      console.error("Lỗi khi kiểm tra mã nhân viên:", error);
+      return false;
+    } finally {
+      setCheckingEmployeeId(false);
+    }
   };
 
   const checkEmailExists = async (email: string): Promise<boolean> => {
@@ -190,6 +232,17 @@ export default function NewUserPage() {
       return false;
     } finally {
       setCheckingEmail(false);
+    }
+  };
+
+  const handleEmployeeIdBlur = async () => {
+    if (!formData.employeeId.trim()) return;
+    const exists = await checkEmployeeIdExists(formData.employeeId);
+    if (exists) {
+      setErrors((prev) => ({
+        ...prev,
+        employeeId: "Mã nhân viên đã được sử dụng",
+      }));
     }
   };
 
@@ -231,7 +284,16 @@ export default function NewUserPage() {
   const validateStep = async (step: number): Promise<boolean> => {
     const next: Record<string, string> = {};
     if (step === 0) {
-      if (!formData.employeeId.trim()) next.employeeId = "Bắt buộc";
+      if (!formData.employeeId.trim()) {
+        next.employeeId = "Bắt buộc";
+      } else {
+        const employeeIdExists = await checkEmployeeIdExists(
+          formData.employeeId
+        );
+        if (employeeIdExists) {
+          next.employeeId = "Mã nhân viên đã được sử dụng";
+        }
+      }
       if (!formData.fullName.trim()) next.fullName = "Bắt buộc";
       if (!formData.email.trim()) {
         next.email = "Bắt buộc";
@@ -293,7 +355,12 @@ export default function NewUserPage() {
         notes: formData.notes.trim() || undefined,
       } as any;
       const cleanedPayload = JSON.parse(JSON.stringify(payload));
-      await createUser(cleanedPayload, formData.password);
+      await createUser(
+        cleanedPayload,
+        formData.password,
+        currentUserProfile?.id,
+        currentUserProfile?.fullName
+      );
       router.push("/users");
     } catch (error) {
       setIsSubmitting(false);
@@ -1104,11 +1171,16 @@ export default function NewUserPage() {
                       fullWidth
                       label="Mã nhân viên *"
                       value={formData.employeeId}
-                      onChange={(e) =>
-                        handleInputChange("employeeId", e.target.value)
-                      }
+                      onChange={(e) => {
+                        handleInputChange("employeeId", e.target.value);
+                      }}
+                      onBlur={handleEmployeeIdBlur}
                       error={!!errors.employeeId}
-                      helperText={errors.employeeId}
+                      helperText={
+                        checkingEmployeeId
+                          ? "Đang kiểm tra mã nhân viên..."
+                          : errors.employeeId
+                      }
                     />
                     <TextField
                       fullWidth
@@ -1176,7 +1248,11 @@ export default function NewUserPage() {
                     />
                     {/* Địa chỉ với Tỉnh/TP và Phường/Xã */}
                     <Box sx={{ gridColumn: { xs: "1", md: "1 / -1" } }}>
-                      <Typography variant="subtitle2" gutterBottom sx={{ mb: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        gutterBottom
+                        sx={{ mb: 1 }}
+                      >
                         Địa chỉ
                       </Typography>
                       <Box
@@ -1352,7 +1428,9 @@ export default function NewUserPage() {
                             }
                             sx={{
                               "& .MuiInputBase-root": {
-                                cursor: selectedProvince ? "pointer" : "default",
+                                cursor: selectedProvince
+                                  ? "pointer"
+                                  : "default",
                               },
                             }}
                           />
@@ -1554,20 +1632,8 @@ export default function NewUserPage() {
                     </FormControl>
                     <FormControl fullWidth>
                       <InputLabel>Vai trò</InputLabel>
-                      <Select
-                        value={formData.role}
-                        label="Vai trò"
-                        onChange={(e) =>
-                          handleInputChange("role", e.target.value)
-                        }
-                      >
-                        <MenuItem value="director">Giám đốc</MenuItem>
-                        <MenuItem value="deputy_director">
-                          Phó giám đốc
-                        </MenuItem>
-                        <MenuItem value="manager">Trưởng phòng</MenuItem>
+                      <Select value={formData.role} label="Vai trò" disabled>
                         <MenuItem value="staff">Nhân viên</MenuItem>
-                        <MenuItem value="technician">Kỹ thuật viên</MenuItem>
                       </Select>
                     </FormControl>
                   </Box>
