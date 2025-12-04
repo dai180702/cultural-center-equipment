@@ -658,22 +658,6 @@ export default function AppSectionLayout({
               Mượn - Trả thiết bị
             </Button>
           )}
-
-          {permissions.canManageDepartments && (
-            <Button
-              fullWidth
-              startIcon={<PeopleIcon />}
-              onClick={() => router.push("/departments")}
-              sx={{
-                justifyContent: "flex-start",
-                color: "#000000",
-                mb: 1,
-                "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
-              }}
-            >
-              Quản lý phòng ban
-            </Button>
-          )}
         </Box>
       </Box>
 

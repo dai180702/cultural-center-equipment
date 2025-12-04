@@ -37,6 +37,10 @@ import {
   searchDevices,
 } from "@/services/devices";
 import {
+  getWarehouseDevices,
+  searchWarehouseDevices,
+} from "@/services/warehouse";
+import {
   Search as SearchIcon,
   Edit as EditIcon,
   Visibility as ViewIcon,
@@ -63,6 +67,7 @@ export default function MaintenancePage() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const [devices, setDevices] = useState<Device[]>([]);
+  // allDevices sẽ chứa cả thiết bị đang dùng (devices) và thiết bị trong kho (warehouse)
   const [allDevices, setAllDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
@@ -86,13 +91,20 @@ export default function MaintenancePage() {
   const loadMaintenanceDevices = async () => {
     try {
       setLoading(true);
-      // Load devices with status "maintenance" or "broken"
-      const allDevicesData = await getDevices();
-      const maintenanceDevices = allDevicesData.filter(
+
+      // 1. Lấy thiết bị đang sử dụng (collection "devices")
+      const inUseDevices = await getDevices();
+
+      // 2. Lấy thiết bị trong kho (collection "warehouse")
+      const warehouseDevices = await getWarehouseDevices();
+
+      // 3. Gộp 2 nguồn và chỉ giữ thiết bị cần bảo trì / đã hỏng
+      const combinedDevices = [...inUseDevices, ...warehouseDevices];
+      const maintenanceDevices = combinedDevices.filter(
         (device) =>
           device.status === "maintenance" || device.status === "broken"
       );
-      console.log("Loaded maintenance devices:", maintenanceDevices);
+
       setAllDevices(maintenanceDevices);
       setDevices(maintenanceDevices);
     } catch (err) {
@@ -111,12 +123,19 @@ export default function MaintenancePage() {
 
     try {
       setLoading(true);
-      const searchResults = await searchDevices(searchTerm);
-      // Filter to only maintenance/broken devices
-      const filteredResults = searchResults.filter(
+
+      // Tìm kiếm trong danh sách thiết bị đang sử dụng
+      const searchInUse = await searchDevices(searchTerm);
+      // Tìm kiếm trong kho
+      const searchWarehouse = await searchWarehouseDevices(searchTerm);
+
+      // Gộp kết quả, lọc trạng thái cần bảo trì / đã hỏng
+      const mergedResults = [...searchInUse, ...searchWarehouse];
+      const filteredResults = mergedResults.filter(
         (device) =>
           device.status === "maintenance" || device.status === "broken"
       );
+
       setDevices(filteredResults);
     } catch (err) {
       setError("Không thể tìm kiếm thiết bị");

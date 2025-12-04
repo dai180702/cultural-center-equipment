@@ -46,7 +46,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Doughnut } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -412,7 +412,7 @@ export default function InventoryReportPage() {
                 Trạng thái thiết bị trong kho
               </Typography>
               <Box sx={{ height: 400 }}>
-                <Doughnut data={statusChartData} options={chartOptions} />
+                <Bar data={statusChartData} options={chartOptions} />
               </Box>
             </CardContent>
           </Card>

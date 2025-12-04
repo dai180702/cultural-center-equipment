@@ -52,7 +52,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Pie } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -220,6 +220,15 @@ export default function UsersReportPage() {
     plugins: {
       legend: {
         position: "bottom" as const,
+      },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          stepSize: 1,
+          precision: 0,
+        },
       },
     },
   };
@@ -476,7 +485,7 @@ export default function UsersReportPage() {
                 Thống kê theo trạng thái
               </Typography>
               <Box sx={{ height: 300 }}>
-                <Pie data={statusChartData} options={chartOptions} />
+                <Bar data={statusChartData} options={chartOptions} />
               </Box>
             </CardContent>
           </Card>
@@ -488,7 +497,7 @@ export default function UsersReportPage() {
                 Thống kê theo vai trò
               </Typography>
               <Box sx={{ height: 300 }}>
-                <Pie data={roleChartData} options={chartOptions} />
+                <Bar data={roleChartData} options={chartOptions} />
               </Box>
             </CardContent>
           </Card>

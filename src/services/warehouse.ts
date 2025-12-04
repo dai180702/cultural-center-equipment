@@ -148,7 +148,8 @@ export const deleteWarehouseDevice = async (
       isDeleted: true,
       deletedAt: new Date(),
       deletedBy: userId || "Không xác định",
-      deletedByName: userName || "Không xác định",
+      // Lưu tên người xóa nếu có, còn không để trống để UI có thể fallback sang deletedBy
+      deletedByName: userName || "",
       deleteReason: deleteReason || "",
       updatedAt: new Date(),
     });
@@ -208,14 +209,14 @@ export const moveDeviceFromWarehouseToDevices = async (
       department: department || deviceData.department || "",
     } as DeviceFormData;
 
+    // Xóa khỏi kho trước để không bị trùng mã khi thêm vào collection devices
+    await hardDeleteWarehouseDevice(warehouseDeviceId);
+
     const newDeviceId = await addDevice(
       updatedData,
       userId || warehouseDevice.createdBy || "Không xác định",
       userName || warehouseDevice.createdByName || "Người dùng"
     );
-
-    // Delete from warehouse (hard delete - completely remove)
-    await hardDeleteWarehouseDevice(warehouseDeviceId);
 
     return newDeviceId;
   } catch (error) {

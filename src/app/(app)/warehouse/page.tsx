@@ -223,7 +223,7 @@ export default function WarehouseManagementPage() {
         deviceToDelete.id,
         currentUser?.uid,
         currentUser?.displayName || currentUser?.email || undefined,
-        deleteReason
+        "" // Không dùng lý do xóa nữa
       );
       setSuccess("Thiết bị đã được đánh dấu là đã xóa");
       setDeleteDialogOpen(false);
@@ -887,18 +887,6 @@ export default function WarehouseManagementPage() {
             <strong>{deviceToDelete?.name}</strong> không? Thiết bị sẽ được đánh
             dấu là "Đã xóa" và vẫn hiển thị trong danh sách với màu đỏ.
           </Typography>
-          <FormControl fullWidth sx={{ mt: 2 }}>
-            <InputLabel>Lý do xóa</InputLabel>
-            <Select
-              value={deleteReason}
-              label="Lý do xóa"
-              onChange={(e) => setDeleteReason(e.target.value)}
-            >
-              <MenuItem value="">Không chọn</MenuItem>
-              <MenuItem value="Bán">Bán</MenuItem>
-              <MenuItem value="Hư">Hư</MenuItem>
-            </Select>
-          </FormControl>
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDeleteDialogOpen(false)}>Hủy</Button>
@@ -1122,9 +1110,13 @@ export default function WarehouseManagementPage() {
                       Ngày xóa: {formatDate(selectedDevice.deletedAt)}
                     </Typography>
                   )}
-                  {selectedDevice.deletedByName && (
+                  {(selectedDevice.deletedByName || selectedDevice.deletedBy) && (
                     <Typography variant="body2" color="text.secondary">
-                      Người xóa: {selectedDevice.deletedByName}
+                      Người xóa:{" "}
+                      {selectedDevice.deletedByName &&
+                      selectedDevice.deletedByName !== "Không xác định"
+                        ? selectedDevice.deletedByName
+                        : selectedDevice.deletedBy || "Không xác định"}
                     </Typography>
                   )}
                   {selectedDevice.deleteReason && (

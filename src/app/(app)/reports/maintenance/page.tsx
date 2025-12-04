@@ -52,7 +52,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Pie } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -309,7 +309,7 @@ export default function MaintenanceReportPage() {
             </CardContent>
           </Card>
         </Box>
-        <Box 
+        <Box
           sx={{
             flex: {
               xs: "1 1 100%",
@@ -407,7 +407,7 @@ export default function MaintenanceReportPage() {
                 Thống kê theo trạng thái
               </Typography>
               <Box sx={{ height: 300 }}>
-                <Pie data={statusChartData} options={chartOptions} />
+                <Bar data={statusChartData} options={chartOptions} />
               </Box>
             </CardContent>
           </Card>

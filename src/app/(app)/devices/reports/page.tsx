@@ -58,7 +58,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Pie, Doughnut } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -456,6 +456,7 @@ export default function DeviceReportsPage() {
     labels: ["Đang sử dụng", "Chưa sử dụng"],
     datasets: [
       {
+        label: "Số lượng",
         data: [stats.assignedCount, stats.unassignedCount],
         backgroundColor: [
           alpha("#1976d2", 0.8),
@@ -771,7 +772,7 @@ export default function DeviceReportsPage() {
                 </Box>
                 <Divider sx={{ mb: 3 }} />
                 <Box sx={{ height: 250 }}>
-                  <Doughnut data={assignmentChartData} options={chartOptions} />
+                  <Bar data={assignmentChartData} options={chartOptions} />
                 </Box>
                 <Box sx={{ mt: 2, textAlign: "center" }}>
                   <Stack direction="row" spacing={2} justifyContent="center">

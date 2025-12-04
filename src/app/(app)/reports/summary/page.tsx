@@ -61,7 +61,7 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import { Bar, Pie, Doughnut } from "react-chartjs-2";
+import { Bar } from "react-chartjs-2";
 
 ChartJS.register(
   CategoryScale,
@@ -575,7 +575,7 @@ export default function SummaryReportPage() {
                   </Typography>
                   <Box sx={{ height: 300 }}>
                     {statusChartData && (
-                      <Pie data={statusChartData} options={chartOptions} />
+                      <Bar data={statusChartData} options={chartOptionsBar} />
                     )}
                   </Box>
                 </CardContent>
@@ -589,10 +589,7 @@ export default function SummaryReportPage() {
                   </Typography>
                   <Box sx={{ height: 300 }}>
                     {categoryChartData && (
-                      <Doughnut
-                        data={categoryChartData}
-                        options={chartOptions}
-                      />
+                      <Bar data={categoryChartData} options={chartOptionsBar} />
                     )}
                   </Box>
                 </CardContent>
