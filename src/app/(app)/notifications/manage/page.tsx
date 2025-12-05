@@ -231,7 +231,7 @@ export default function NotificationsManagePage() {
       }
 
       // Xử lý targetAudience dựa trên targetType
-      let finalTargetAudience: string | string[];
+      let finalTargetAudience: NotificationFormData["targetAudience"];
       if (targetType === "specific") {
         if (selectedUserIds.length === 0) {
           setError("Vui lòng chọn ít nhất một người nhận");
@@ -239,10 +239,17 @@ export default function NotificationsManagePage() {
         }
         finalTargetAudience = selectedUserIds;
       } else {
-        finalTargetAudience =
+        const audienceValue =
           typeof formData.targetAudience === "string"
             ? formData.targetAudience
             : "all";
+        finalTargetAudience = audienceValue as
+          | "all"
+          | "director"
+          | "deputy_director"
+          | "manager"
+          | "staff"
+          | "technician";
       }
 
       await addNotification(
@@ -284,7 +291,7 @@ export default function NotificationsManagePage() {
       }
 
       // Xử lý targetAudience dựa trên targetType
-      let finalTargetAudience: string | string[];
+      let finalTargetAudience: NotificationFormData["targetAudience"];
       if (targetType === "specific") {
         if (selectedUserIds.length === 0) {
           setError("Vui lòng chọn ít nhất một người nhận");
@@ -292,10 +299,17 @@ export default function NotificationsManagePage() {
         }
         finalTargetAudience = selectedUserIds;
       } else {
-        finalTargetAudience =
+        const audienceValue =
           typeof formData.targetAudience === "string"
             ? formData.targetAudience
             : "all";
+        finalTargetAudience = audienceValue as
+          | "all"
+          | "director"
+          | "deputy_director"
+          | "manager"
+          | "staff"
+          | "technician";
       }
 
       await updateNotification(
