@@ -38,6 +38,7 @@ import {
   Warning as WarningIcon,
   CalendarToday as CalendarTodayIcon,
   Person as PersonIcon,
+  Edit as EditIcon,
 } from "@mui/icons-material";
 import { getUserByEmail, User } from "@/services/users";
 import { getPermissions, UserRole } from "@/utils/permissions";
@@ -640,6 +641,26 @@ export default function AppSectionLayout({
               >
                 Cảnh báo
               </Button>
+              {(currentUserRole === "director" ||
+                currentUserRole === "deputy_director" ||
+                currentUserRole === "manager") && (
+                <Button
+                  fullWidth
+                  size="small"
+                  startIcon={<EditIcon />}
+                  onClick={() => router.push("/notifications/manage")}
+                  sx={{
+                    justifyContent: "flex-start",
+                    color: "#000000",
+                    opacity: 0.9,
+                    fontSize: "0.875rem",
+                    py: 0.5,
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                  }}
+                >
+                  Quản lý
+                </Button>
+              )}
             </Box>
           )}
 

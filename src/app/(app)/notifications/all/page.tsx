@@ -18,26 +18,69 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useState, useEffect } from "react";
 import { getNotifications, Notification } from "@/services/notifications";
+import { getUserByEmail } from "@/services/users";
 
 export default function NotificationsAllPage() {
   const { currentUser } = useAuth();
   const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     if (!currentUser) {
       router.replace("/login");
       return;
     }
+    loadCurrentUserRole();
     loadNotifications();
   }, [currentUser, router]);
+
+  const loadCurrentUserRole = async () => {
+    try {
+      if (!currentUser?.email) return;
+      const profile = await getUserByEmail(currentUser.email);
+      if (profile) {
+        setCurrentUserRole(profile.role);
+      }
+    } catch (err) {
+      console.error("Error loading user role:", err);
+    }
+  };
 
   const loadNotifications = async () => {
     try {
       setLoading(true);
-      const data = await getNotifications();
-      setNotifications(data);
+      const allNotifications = await getNotifications();
+      const userId = currentUser?.uid || "";
+
+      // Lọc thông báo phù hợp với người dùng
+      const relevantNotifications = allNotifications.filter((notif) => {
+        // Kiểm tra thông báo đã hết hạn chưa
+        if (notif.expiresAt && notif.expiresAt < new Date()) {
+          return false;
+        }
+
+        // Kiểm tra target audience
+        if (notif.targetAudience === "all") {
+          return true;
+        }
+        if (
+          typeof notif.targetAudience === "string" &&
+          notif.targetAudience === currentUserRole
+        ) {
+          return true;
+        }
+        if (
+          Array.isArray(notif.targetAudience) &&
+          notif.targetAudience.includes(userId)
+        ) {
+          return true;
+        }
+        return false;
+      });
+
+      setNotifications(relevantNotifications);
     } catch (err) {
       console.error("Error loading notifications:", err);
     } finally {
@@ -84,7 +127,14 @@ export default function NotificationsAllPage() {
                     <ListItem>
                       <ListItemText
                         primary={
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 1,
+                            }}
+                          >
                             <Typography variant="h6">{notif.title}</Typography>
                             <Chip
                               label={notif.type}
@@ -98,9 +148,14 @@ export default function NotificationsAllPage() {
                             <Typography variant="body2" sx={{ mb: 1 }}>
                               {notif.message}
                             </Typography>
-                            <Typography variant="caption" color="text.secondary">
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               {notif.createdAt
-                                ? new Date(notif.createdAt).toLocaleString("vi-VN")
+                                ? new Date(notif.createdAt).toLocaleString(
+                                    "vi-VN"
+                                  )
                                 : "-"}
                             </Typography>
                           </>
@@ -118,4 +173,3 @@ export default function NotificationsAllPage() {
     </Container>
   );
 }
-
