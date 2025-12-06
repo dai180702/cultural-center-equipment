@@ -20,3 +20,4 @@ Cuối cùng, về bảo mật và hiệu suất hệ thống. Đề tài nghiê
 
 Tóm lại, đối tượng nghiên cứu của đề tài là một hệ thống quản lý thiết bị toàn diện, được xây dựng trên nền tảng công nghệ web hiện đại, nhằm số hóa và tự động hóa quy trình quản lý thiết bị tại Trung tâm Văn hóa Thể thao & Truyền thanh xã Bắc Tân Uyên. Hệ thống không chỉ đáp ứng các yêu cầu về chức năng mà còn đảm bảo tính bảo mật, hiệu suất và trải nghiệm người dùng tốt, đặc biệt là chức năng thông báo linh hoạt giúp lãnh đạo và trưởng phòng dễ dàng truyền đạt thông tin đến nhân viên và kỹ thuật viên một cách hiệu quả.
 
+

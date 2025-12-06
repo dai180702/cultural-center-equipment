@@ -18,6 +18,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { getDevices, getDevicesByStatus } from "@/services/devices";
+import { getWarehouseDevices } from "@/services/warehouse";
 import { getUsers } from "@/services/users";
 import {
   Home as HomeIcon,
@@ -138,6 +139,7 @@ export default function Dashboard() {
       console.log("👤 Người dùng hiện tại:", currentUser?.uid);
 
       let allDevices: any[] = [];
+      let warehouseDevices: any[] = [];
       let activeDevices: any[] = [];
       let maintenanceDevices: any[] = [];
       let brokenDevices: any[] = [];
@@ -145,11 +147,24 @@ export default function Dashboard() {
       let allUsers: any[] = [];
 
       try {
-        allDevices = await getDevices();
-        console.log("📱 Đã tải tất cả thiết bị:", allDevices);
+        // Lấy thiết bị đang sử dụng
+        const inUseDevices = await getDevices();
+        console.log("📱 Đã tải thiết bị đang sử dụng:", inUseDevices);
+
+        // Lấy thiết bị trong kho
+        warehouseDevices = await getWarehouseDevices();
+        console.log("📦 Đã tải thiết bị trong kho:", warehouseDevices);
+
+        // Gộp cả hai nguồn
+        allDevices = [...inUseDevices, ...warehouseDevices];
+        console.log(
+          "📱 Tổng số thiết bị (đang dùng + kho):",
+          allDevices.length
+        );
       } catch (error) {
-        console.error("❌ Lỗi khi tải tất cả thiết bị:", error);
+        console.error("❌ Lỗi khi tải thiết bị:", error);
         allDevices = [];
+        warehouseDevices = [];
       }
 
       try {
@@ -160,37 +175,22 @@ export default function Dashboard() {
         allUsers = [];
       }
 
-      try {
-        activeDevices = await getDevicesByStatus("active");
-        console.log("✅ Đã tải thiết bị đang hoạt động:", activeDevices);
-      } catch (error) {
-        console.error("❌ Lỗi khi tải thiết bị đang hoạt động:", error);
-        activeDevices = [];
-      }
+      // Lọc thiết bị theo trạng thái từ tất cả thiết bị (bao gồm cả kho)
+      activeDevices = allDevices.filter((device) => device.status === "active");
+      console.log("✅ Thiết bị đang hoạt động:", activeDevices.length);
 
-      try {
-        maintenanceDevices = await getDevicesByStatus("maintenance");
-        console.log("🔧 Đã tải thiết bị cần bảo trì:", maintenanceDevices);
-      } catch (error) {
-        console.error("❌ Lỗi khi tải thiết bị cần bảo trì:", error);
-        maintenanceDevices = [];
-      }
+      maintenanceDevices = allDevices.filter(
+        (device) => device.status === "maintenance"
+      );
+      console.log("🔧 Thiết bị cần bảo trì:", maintenanceDevices.length);
 
-      try {
-        brokenDevices = await getDevicesByStatus("broken");
-        console.log("❗ Đã tải thiết bị đã hỏng:", brokenDevices);
-      } catch (error) {
-        console.error("❌ Lỗi khi tải thiết bị đã hỏng:", error);
-        brokenDevices = [];
-      }
+      brokenDevices = allDevices.filter((device) => device.status === "broken");
+      console.log("❗ Thiết bị đã hỏng:", brokenDevices.length);
 
-      try {
-        retiredDevices = await getDevicesByStatus("retired");
-        console.log("📦 Đã tải thiết bị thanh lý:", retiredDevices);
-      } catch (error) {
-        console.error("❌ Lỗi khi tải thiết bị thanh lý:", error);
-        retiredDevices = [];
-      }
+      retiredDevices = allDevices.filter(
+        (device) => device.status === "retired"
+      );
+      console.log("📦 Thiết bị thanh lý:", retiredDevices.length);
 
       const uniqueDepartments = new Set(
         allDevices
@@ -267,17 +267,16 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (isMobile) {
-      setSidebarOpen(false); 
+      setSidebarOpen(false);
     } else {
-      setSidebarOpen(true); 
+      setSidebarOpen(true);
     }
   }, [isMobile]);
-
 
   useEffect(() => {
     const handleResize = () => {
       const width = window.innerWidth;
-      const isMobileSize = width < 1200; 
+      const isMobileSize = width < 1200;
 
       if (isMobileSize !== isMobile) {
         if (isMobileSize) {
