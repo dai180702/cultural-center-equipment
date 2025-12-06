@@ -220,27 +220,38 @@ export default function Dashboard() {
       const newDevicesThisMonth = allDevices.filter((device) => {
         if (!device.createdAt) return false;
 
-        // Xử lý createdAt có thể là Date, Timestamp, hoặc string
-        let createdDate: Date;
-        if (device.createdAt instanceof Date) {
-          createdDate = device.createdAt;
-        } else if (typeof device.createdAt === "string") {
-          createdDate = new Date(device.createdAt);
-        } else if (
-          device.createdAt &&
-          typeof device.createdAt === "object" &&
-          "toDate" in device.createdAt
-        ) {
-          // Firestore Timestamp
-          createdDate = (device.createdAt as any).toDate();
-        } else {
-          createdDate = new Date(device.createdAt);
+        try {
+          // Xử lý createdAt có thể là Date, Timestamp, hoặc string
+          let createdDate: Date;
+          if (device.createdAt instanceof Date) {
+            createdDate = new Date(device.createdAt);
+          } else if (typeof device.createdAt === "string") {
+            createdDate = new Date(device.createdAt);
+          } else if (
+            device.createdAt &&
+            typeof device.createdAt === "object" &&
+            "toDate" in device.createdAt &&
+            typeof (device.createdAt as any).toDate === "function"
+          ) {
+            // Firestore Timestamp
+            createdDate = (device.createdAt as any).toDate();
+          } else {
+            createdDate = new Date(device.createdAt as any);
+          }
+
+          // Kiểm tra nếu ngày không hợp lệ
+          if (isNaN(createdDate.getTime())) {
+            return false;
+          }
+
+          // Reset giờ về 00:00:00 để so sánh chỉ theo ngày
+          createdDate.setHours(0, 0, 0, 0);
+
+          return createdDate >= firstDayOfMonth;
+        } catch (error) {
+          console.error("Lỗi khi xử lý ngày tạo thiết bị:", error, device);
+          return false;
         }
-
-        // Reset giờ về 00:00:00 để so sánh chỉ theo ngày
-        createdDate.setHours(0, 0, 0, 0);
-
-        return createdDate >= firstDayOfMonth;
       });
 
       console.log("📊 Đã tải thống kê thiết bị:", {
