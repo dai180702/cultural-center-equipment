@@ -183,28 +183,32 @@ export default function Dashboard() {
       }
 
       // Lọc thiết bị theo trạng thái từ tất cả thiết bị (bao gồm cả kho)
-      activeDevices = allDevices.filter((device) => device.status === "active");
+      activeDevices = (allDevices || []).filter(
+        (device) => device?.status === "active"
+      );
       console.log("✅ Thiết bị đang hoạt động:", activeDevices.length);
 
-      maintenanceDevices = allDevices.filter(
-        (device) => device.status === "maintenance"
+      maintenanceDevices = (allDevices || []).filter(
+        (device) => device?.status === "maintenance"
       );
       console.log("🔧 Thiết bị cần bảo trì:", maintenanceDevices.length);
 
-      brokenDevices = allDevices.filter((device) => device.status === "broken");
+      brokenDevices = (allDevices || []).filter(
+        (device) => device?.status === "broken"
+      );
       console.log("❗ Thiết bị đã hỏng:", brokenDevices.length);
 
-      retiredDevices = allDevices.filter(
-        (device) => device.status === "retired"
+      retiredDevices = (allDevices || []).filter(
+        (device) => device?.status === "retired"
       );
       console.log("📦 Thiết bị thanh lý:", retiredDevices.length);
 
       // Thiết bị đang ở phòng ban = thiết bị đang sử dụng (không phải trong kho)
-      const devicesInDepartments = inUseDevices.length;
+      const devicesInDepartments = (inUseDevices || []).length;
       console.log("🏢 Thiết bị đang ở phòng ban:", devicesInDepartments);
 
       // Tổng thiết bị trong kho
-      const totalWarehouseDevices = warehouseDevices.length;
+      const totalWarehouseDevices = (warehouseDevices || []).length;
       console.log("📦 Tổng thiết bị trong kho:", totalWarehouseDevices);
 
       const today = new Date();
@@ -217,8 +221,8 @@ export default function Dashboard() {
       );
       firstDayOfMonth.setHours(0, 0, 0, 0);
 
-      const newDevicesThisMonth = allDevices.filter((device) => {
-        if (!device.createdAt) return false;
+      const newDevicesThisMonth = (allDevices || []).filter((device) => {
+        if (!device || !device.createdAt) return false;
 
         try {
           // Xử lý createdAt có thể là Date, Timestamp, hoặc string
@@ -264,40 +268,46 @@ export default function Dashboard() {
         tongThietBiKho: totalWarehouseDevices,
       });
 
-      setStatistics((prev) => [
-        {
-          ...prev[0],
-          count: allDevices.length.toString(),
-        },
-        {
-          ...prev[1],
-          count: activeDevices.length.toString(),
-        },
-        {
-          ...prev[2],
-          count: totalWarehouseDevices.toString(),
-        },
-        {
-          ...prev[3],
-          count: devicesInDepartments.toString(),
-        },
-        {
-          ...prev[4],
-          count: maintenanceDevices.length.toString(),
-        },
-        {
-          ...prev[5],
-          count: brokenDevices.length.toString(),
-        },
-        {
-          ...prev[6],
-          count: newDevicesThisMonth.length.toString(),
-        },
-        {
-          ...prev[7],
-          count: allUsers.length.toString(),
-        },
-      ]);
+      setStatistics((prev) => {
+        if (!prev || prev.length < 8) {
+          // Fallback nếu prev không đủ phần tử
+          return prev;
+        }
+        return [
+          {
+            ...prev[0],
+            count: allDevices.length.toString(),
+          },
+          {
+            ...prev[1],
+            count: activeDevices.length.toString(),
+          },
+          {
+            ...prev[2],
+            count: totalWarehouseDevices.toString(),
+          },
+          {
+            ...prev[3],
+            count: devicesInDepartments.toString(),
+          },
+          {
+            ...prev[4],
+            count: maintenanceDevices.length.toString(),
+          },
+          {
+            ...prev[5],
+            count: brokenDevices.length.toString(),
+          },
+          {
+            ...prev[6],
+            count: newDevicesThisMonth.length.toString(),
+          },
+          {
+            ...prev[7],
+            count: allUsers.length.toString(),
+          },
+        ];
+      });
 
       console.log("✅ Cập nhật thống kê thành công!");
     } catch (error) {
