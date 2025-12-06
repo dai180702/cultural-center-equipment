@@ -47,7 +47,6 @@ import {
   Refresh as RefreshIcon,
   Delete as DeleteIcon,
   Business as BusinessIcon,
-  MeetingRoom as MeetingRoomIcon,
 } from "@mui/icons-material";
 
 export default function Dashboard() {
