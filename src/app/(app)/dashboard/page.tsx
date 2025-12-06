@@ -46,6 +46,8 @@ import {
   CalendarToday as CalendarTodayIcon,
   Refresh as RefreshIcon,
   Delete as DeleteIcon,
+  Business as BusinessIcon,
+  MeetingRoom as MeetingRoomIcon,
 } from "@mui/icons-material";
 
 export default function Dashboard() {
@@ -65,52 +67,52 @@ export default function Dashboard() {
   const [settingsMenuOpen, setSettingsMenuOpen] = useState(false);
   const [statistics, setStatistics] = useState([
     {
-      icon: <LaptopIcon sx={{ fontSize: 32, color: "primary.main" }} />,
+      icon: <LaptopIcon sx={{ fontSize: 32, color: "#1976d2" }} />,
       count: "0",
       label: "Tổng thiết bị",
-      color: "primary.main",
+      color: "#1976d2",
     },
     {
-      icon: <GridViewIcon sx={{ fontSize: 32, color: "success.main" }} />,
+      icon: <GridViewIcon sx={{ fontSize: 32, color: "#2e7d32" }} />,
       count: "0",
       label: "Đang hoạt động",
-      color: "success.main",
+      color: "#2e7d32",
     },
     {
-      icon: <EngineeringIcon sx={{ fontSize: 32, color: "warning.main" }} />,
+      icon: <InventoryIcon sx={{ fontSize: 32, color: "#0288d1" }} />,
+      count: "0",
+      label: "Thiết bị trong kho",
+      color: "#0288d1",
+    },
+    {
+      icon: <BusinessIcon sx={{ fontSize: 32, color: "#0288d1" }} />,
+      count: "0",
+      label: "Thiết bị trong phòng",
+      color: "#0288d1",
+    },
+    {
+      icon: <EngineeringIcon sx={{ fontSize: 32, color: "#ed6c02" }} />,
       count: "0",
       label: "Cần bảo trì",
-      color: "warning.main",
+      color: "#ed6c02",
     },
     {
-      icon: <WarningIcon sx={{ fontSize: 32, color: "error.main" }} />,
+      icon: <WarningIcon sx={{ fontSize: 32, color: "#d32f2f" }} />,
       count: "0",
       label: "Đã hỏng",
-      color: "error.main",
+      color: "#d32f2f",
     },
     {
-      icon: <DeleteIcon sx={{ fontSize: 32, color: "secondary.main" }} />,
-      count: "0",
-      label: "Thanh lý",
-      color: "secondary.main",
-    },
-    {
-      icon: <AddIcon sx={{ fontSize: 32, color: "info.main" }} />,
+      icon: <AddIcon sx={{ fontSize: 32, color: "#00897b" }} />,
       count: "0",
       label: "Thiết bị mới trong tháng",
-      color: "info.main",
+      color: "#00897b",
     },
     {
-      icon: <PeopleIcon sx={{ fontSize: 32, color: "info.main" }} />,
+      icon: <PeopleIcon sx={{ fontSize: 32, color: "#1565c0" }} />,
       count: "0",
       label: "Tổng nhân viên",
-      color: "info.main",
-    },
-    {
-      icon: <InventoryIcon sx={{ fontSize: 32, color: "info.main" }} />,
-      count: "0",
-      label: "Phòng ban",
-      color: "info.main",
+      color: "#1565c0",
     },
   ]);
 
@@ -139,6 +141,7 @@ export default function Dashboard() {
       console.log("👤 Người dùng hiện tại:", currentUser?.uid);
 
       let allDevices: any[] = [];
+      let inUseDevices: any[] = [];
       let warehouseDevices: any[] = [];
       let activeDevices: any[] = [];
       let maintenanceDevices: any[] = [];
@@ -147,25 +150,30 @@ export default function Dashboard() {
       let allUsers: any[] = [];
 
       try {
-        // Lấy thiết bị đang sử dụng
-        const inUseDevices = await getDevices();
-        console.log("📱 Đã tải thiết bị đang sử dụng:", inUseDevices);
-
-        // Lấy thiết bị trong kho
-        warehouseDevices = await getWarehouseDevices();
-        console.log("📦 Đã tải thiết bị trong kho:", warehouseDevices);
-
-        // Gộp cả hai nguồn
-        allDevices = [...inUseDevices, ...warehouseDevices];
+        inUseDevices = await getDevices();
         console.log(
-          "📱 Tổng số thiết bị (đang dùng + kho):",
-          allDevices.length
+          "📱 Đã tải thiết bị đang sử dụng:",
+          inUseDevices?.length || 0
         );
       } catch (error) {
-        console.error("❌ Lỗi khi tải thiết bị:", error);
-        allDevices = [];
+        console.error("❌ Lỗi khi tải thiết bị đang sử dụng:", error);
+        inUseDevices = [];
+      }
+
+      try {
+        warehouseDevices = await getWarehouseDevices();
+        console.log(
+          "📦 Đã tải thiết bị trong kho:",
+          warehouseDevices?.length || 0
+        );
+      } catch (error) {
+        console.error("❌ Lỗi khi tải thiết bị trong kho:", error);
         warehouseDevices = [];
       }
+
+      // Gộp cả hai nguồn để tính tổng
+      allDevices = [...inUseDevices, ...warehouseDevices];
+      console.log("📱 Tổng số thiết bị (đang dùng + kho):", allDevices.length);
 
       try {
         allUsers = await getUsers();
@@ -192,22 +200,47 @@ export default function Dashboard() {
       );
       console.log("📦 Thiết bị thanh lý:", retiredDevices.length);
 
-      const uniqueDepartments = new Set(
-        allDevices
-          .map((d: any) => (d?.department || "").trim())
-          .filter((name: string) => Boolean(name))
-      );
+      // Thiết bị đang ở phòng ban = thiết bị đang sử dụng (không phải trong kho)
+      const devicesInDepartments = inUseDevices.length;
+      console.log("🏢 Thiết bị đang ở phòng ban:", devicesInDepartments);
+
+      // Tổng thiết bị trong kho
+      const totalWarehouseDevices = warehouseDevices.length;
+      console.log("📦 Tổng thiết bị trong kho:", totalWarehouseDevices);
 
       const today = new Date();
+      // Đặt giờ về 00:00:00 để so sánh chính xác ngày
+      today.setHours(0, 0, 0, 0);
       const firstDayOfMonth = new Date(
         today.getFullYear(),
         today.getMonth(),
         1
       );
+      firstDayOfMonth.setHours(0, 0, 0, 0);
 
       const newDevicesThisMonth = allDevices.filter((device) => {
         if (!device.createdAt) return false;
-        const createdDate = new Date(device.createdAt);
+
+        // Xử lý createdAt có thể là Date, Timestamp, hoặc string
+        let createdDate: Date;
+        if (device.createdAt instanceof Date) {
+          createdDate = device.createdAt;
+        } else if (typeof device.createdAt === "string") {
+          createdDate = new Date(device.createdAt);
+        } else if (
+          device.createdAt &&
+          typeof device.createdAt === "object" &&
+          "toDate" in device.createdAt
+        ) {
+          // Firestore Timestamp
+          createdDate = (device.createdAt as any).toDate();
+        } else {
+          createdDate = new Date(device.createdAt);
+        }
+
+        // Reset giờ về 00:00:00 để so sánh chỉ theo ngày
+        createdDate.setHours(0, 0, 0, 0);
+
         return createdDate >= firstDayOfMonth;
       });
 
@@ -216,9 +249,9 @@ export default function Dashboard() {
         dangHoatDong: activeDevices.length,
         canBaoTri: maintenanceDevices.length,
         daHong: brokenDevices.length,
-        thanhLy: retiredDevices.length,
+        thietBiPhongBan: devicesInDepartments,
         moiTrongThang: newDevicesThisMonth.length,
-        phongBan: uniqueDepartments.size,
+        tongThietBiKho: totalWarehouseDevices,
       });
 
       setStatistics((prev) => [
@@ -232,27 +265,27 @@ export default function Dashboard() {
         },
         {
           ...prev[2],
-          count: maintenanceDevices.length.toString(),
+          count: totalWarehouseDevices.toString(),
         },
         {
           ...prev[3],
-          count: brokenDevices.length.toString(),
+          count: devicesInDepartments.toString(),
         },
         {
           ...prev[4],
-          count: retiredDevices.length.toString(),
+          count: maintenanceDevices.length.toString(),
         },
         {
           ...prev[5],
-          count: newDevicesThisMonth.length.toString(),
+          count: brokenDevices.length.toString(),
         },
         {
           ...prev[6],
-          count: allUsers.length.toString(),
+          count: newDevicesThisMonth.length.toString(),
         },
         {
           ...prev[7],
-          count: uniqueDepartments.size.toString(),
+          count: allUsers.length.toString(),
         },
       ]);
 
@@ -1196,58 +1229,58 @@ export default function Dashboard() {
                         }),
                         ...(stat.label === "Tổng thiết bị" && {
                           bgcolor: "#e3f2fd",
-                          color: "info.main",
-                          borderColor: "info.main",
+                          border: "1px solid #1976d2",
                           "& .MuiTypography-root": {
-                            color: "info.main",
+                            color: "#1976d2",
                           },
                         }),
                         ...(stat.label === "Đang hoạt động" && {
-                          bgcolor: "#e8f5e8",
-                          color: "success.main",
-                          borderColor: "success.main",
+                          bgcolor: "#e8f5e9",
+                          border: "1px solid #2e7d32",
                           "& .MuiTypography-root": {
-                            color: "success.main",
+                            color: "#2e7d32",
+                          },
+                        }),
+                        ...(stat.label === "Thiết bị trong kho" && {
+                          bgcolor: "#e1f5fe",
+                          border: "1px solid #0288d1",
+                          "& .MuiTypography-root": {
+                            color: "#0288d1",
+                          },
+                        }),
+                        ...(stat.label === "Thiết bị trong phòng" && {
+                          bgcolor: "#e1f5fe",
+                          border: "1px solid #0288d1",
+                          "& .MuiTypography-root": {
+                            color: "#0288d1",
                           },
                         }),
                         ...(stat.label === "Cần bảo trì" && {
                           bgcolor: "#fff3e0",
-                          color: "warning.main",
-                          borderColor: "warning.main",
+                          border: "1px solid #ed6c02",
                           "& .MuiTypography-root": {
-                            color: "warning.main",
+                            color: "#ed6c02",
                           },
                         }),
                         ...(stat.label === "Đã hỏng" && {
                           bgcolor: "#ffebee",
-                          color: "error.main",
-                          borderColor: "error.main",
+                          border: "1px solid #d32f2f",
                           "& .MuiTypography-root": {
-                            color: "error.main",
+                            color: "#d32f2f",
                           },
                         }),
-                        ...(stat.label === "Thanh lý" && {
-                          bgcolor: "#ffcdd2",
-                          color: "error.main",
-                          borderColor: "error.main",
+                        ...(stat.label === "Thiết bị mới trong tháng" && {
+                          bgcolor: "#e0f2f1",
+                          border: "1px solid #00897b",
                           "& .MuiTypography-root": {
-                            color: "error.main",
+                            color: "#00897b",
                           },
                         }),
                         ...(stat.label === "Tổng nhân viên" && {
                           bgcolor: "#e3f2fd",
-                          color: "info.main",
-                          borderColor: "info.main",
+                          border: "1px solid #1565c0",
                           "& .MuiTypography-root": {
-                            color: "info.main",
-                          },
-                        }),
-                        ...(stat.label === "Phòng ban" && {
-                          bgcolor: "#e3f2fd",
-                          color: "info.main",
-                          borderColor: "info.main",
-                          "& .MuiTypography-root": {
-                            color: "info.main",
+                            color: "#1565c0",
                           },
                         }),
                       }}
