@@ -262,7 +262,11 @@ export default function WarehouseManagementPage() {
       // Reload data from server to ensure consistency
       await loadDevices();
     } catch (err) {
-      setError("Không thể chuyển thiết bị lên phòng");
+      const message =
+        err instanceof Error
+          ? err.message
+          : "Không thể chuyển thiết bị lên phòng";
+      setError(message);
     } finally {
       setMoving(false);
     }

@@ -211,6 +211,11 @@ export default function BorrowReturnPage() {
   };
 
   const handleReturnClick = (record: BorrowRecord) => {
+    if (currentUser?.uid && record.borrowerId !== currentUser.uid) {
+      setError("Chỉ người mượn mới được xác nhận trả thiết bị này");
+      return;
+    }
+
     setSelectedRecord(record);
     setReturnDialogOpen(true);
   };
@@ -240,6 +245,13 @@ export default function BorrowReturnPage() {
 
   const handleConfirmReturn = async () => {
     if (!selectedRecord?.id) return;
+
+    // Double-check quyền: chỉ người mượn được trả
+    if (currentUser?.uid && selectedRecord.borrowerId !== currentUser.uid) {
+      setError("Chỉ người mượn mới được xác nhận trả thiết bị này");
+      setReturnDialogOpen(false);
+      return;
+    }
 
     try {
       setReturning(true);
@@ -287,7 +299,7 @@ export default function BorrowReturnPage() {
       <Box
         sx={{
           height: 50,
-            bgcolor: "#90caf9",
+          bgcolor: "#90caf9",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
@@ -298,28 +310,28 @@ export default function BorrowReturnPage() {
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
         }}
       >
-          <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "#000000",
-                cursor: "pointer",
-                "&:hover": { opacity: 0.7 },
-              }}
-            >
-              Giới thiệu
-            </Typography>
-            <Typography
-              variant="body2"
-              sx={{
-                color: "#000000",
-                cursor: "pointer",
-                "&:hover": { opacity: 0.7 },
-              }}
-            >
-              Liên hệ
-            </Typography>
-          </Box>
+        <Box sx={{ display: "flex", gap: 3, ml: "auto" }}>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "#000000",
+              cursor: "pointer",
+              "&:hover": { opacity: 0.7 },
+            }}
+          >
+            Giới thiệu
+          </Typography>
+          <Typography
+            variant="body2"
+            sx={{
+              color: "#000000",
+              cursor: "pointer",
+              "&:hover": { opacity: 0.7 },
+            }}
+          >
+            Liên hệ
+          </Typography>
+        </Box>
       </Box>
 
       {/* Main Content Area */}

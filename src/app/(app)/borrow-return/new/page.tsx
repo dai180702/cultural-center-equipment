@@ -108,15 +108,21 @@ export default function NewBorrowPage() {
       setLoadingData(true);
       // Chỉ lấy thiết bị từ kho (warehouse) - thiết bị chưa được sử dụng
       const devicesData = await getWarehouseDevices();
-      // Lọc chỉ thiết bị có status active và không có assignedTo
-      const availableDevices = devicesData.filter(
-        (device) =>
+      // Lọc chỉ thiết bị còn trong kho, chưa bị xóa, sẵn sàng cho mượn
+      const availableDevices = devicesData.filter((device) => {
+        const inWarehouse =
+          device.location?.toLowerCase().includes("kho") ||
+          device.location === "Kho" ||
+          !device.location;
+        const notDeleted = !device.isDeleted && !device.deletedAt;
+
+        return (
           device.status === "active" &&
           !device.assignedTo &&
-          (device.location?.toLowerCase().includes("kho") ||
-            device.location === "Kho" ||
-            !device.location)
-      );
+          inWarehouse &&
+          notDeleted
+        );
+      });
       setAllDevices(availableDevices);
       setDevices(availableDevices);
 

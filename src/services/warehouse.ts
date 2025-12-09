@@ -14,13 +14,16 @@ import { Device, DeviceFormData, isDeviceCodeExists } from "./devices";
 export const addDeviceToWarehouse = async (
   deviceData: DeviceFormData,
   userId: string,
-  userName?: string
+  userName?: string,
+  excludeId?: string
 ): Promise<string> => {
   try {
     // Check if device code already exists
-    const codeExists = await isDeviceCodeExists(deviceData.code);
+    const codeExists = await isDeviceCodeExists(deviceData.code, excludeId);
     if (codeExists) {
-      throw new Error(`Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`);
+      throw new Error(
+        `Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`
+      );
     }
 
     const cleanedData = Object.fromEntries(
@@ -72,12 +75,16 @@ export const getWarehouseDevices = async (): Promise<Device[]> => {
     return devices;
   } catch (error) {
     console.error("Error getting warehouse devices: ", error);
-    throw new Error("Không thể lấy danh sách thiết bị trong kho. Vui lòng thử lại.");
+    throw new Error(
+      "Không thể lấy danh sách thiết bị trong kho. Vui lòng thử lại."
+    );
   }
 };
 
 // Get warehouse device by ID
-export const getWarehouseDeviceById = async (id: string): Promise<Device | null> => {
+export const getWarehouseDeviceById = async (
+  id: string
+): Promise<Device | null> => {
   try {
     const docRef = doc(db, "warehouse", id);
     const docSnap = await getDoc(docRef);
@@ -99,7 +106,9 @@ export const getWarehouseDeviceById = async (id: string): Promise<Device | null>
     }
   } catch (error) {
     console.error("Error getting warehouse device: ", error);
-    throw new Error("Không thể lấy thông tin thiết bị trong kho. Vui lòng thử lại.");
+    throw new Error(
+      "Không thể lấy thông tin thiết bị trong kho. Vui lòng thử lại."
+    );
   }
 };
 
@@ -115,7 +124,9 @@ export const updateWarehouseDevice = async (
     if (deviceData.code) {
       const codeExists = await isDeviceCodeExists(deviceData.code, id);
       if (codeExists) {
-        throw new Error(`Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`);
+        throw new Error(
+          `Mã thiết bị "${deviceData.code}" đã tồn tại. Vui lòng sử dụng mã khác.`
+        );
       }
     }
 
@@ -178,22 +189,33 @@ export const moveDeviceFromWarehouseToDevices = async (
   department?: string
 ): Promise<string> => {
   try {
-    // Get device from warehouse
     const warehouseDevice = await getWarehouseDeviceById(warehouseDeviceId);
     if (!warehouseDevice) {
       throw new Error("Không tìm thấy thiết bị trong kho");
     }
 
-    // Add to devices collection
-    const { id, createdAt, updatedAt, createdBy, createdByName, updatedBy, updatedByName, ...deviceData } = warehouseDevice;
+    if (warehouseDevice.assignedTo) {
+      throw new Error("Thiết bị đang được mượn, không thể chuyển vào phòng");
+    }
+
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      createdBy,
+      createdByName,
+      updatedBy,
+      updatedByName,
+      ...deviceData
+    } = warehouseDevice;
     const { addDevice } = await import("./devices");
-    
+
     // Update location - remove "Kho" and use department as location if available
     let newLocation = deviceData.location || "";
     if (newLocation.toLowerCase().includes("kho")) {
       newLocation = newLocation.replace(/kho/gi, "").trim();
     }
-    
+
     // If location is empty after removing "Kho", use department as location
     if (!newLocation && department) {
       newLocation = department;
@@ -221,7 +243,9 @@ export const moveDeviceFromWarehouseToDevices = async (
     return newDeviceId;
   } catch (error) {
     console.error("Error moving device from warehouse to devices: ", error);
-    throw new Error("Không thể chuyển thiết bị từ kho sang quản lý. Vui lòng thử lại.");
+    throw new Error(
+      "Không thể chuyển thiết bị từ kho sang quản lý. Vui lòng thử lại."
+    );
   }
 };
 
@@ -235,24 +259,32 @@ export const moveDeviceFromDevicesToWarehouse = async (
     // Get device from devices collection
     const { getDeviceById, deleteDevice } = await import("./devices");
     const device = await getDeviceById(deviceId);
-    
+
     if (!device) {
       throw new Error("Không tìm thấy thiết bị trong quản lý thiết bị");
     }
 
     // Prepare device data for warehouse
-    const { id, createdAt, updatedAt, createdBy, createdByName, updatedBy, updatedByName, ...deviceData } = device;
-    
+    const {
+      id,
+      createdAt,
+      updatedAt,
+      createdBy,
+      createdByName,
+      updatedBy,
+      updatedByName,
+      ...deviceData
+    } = device;
+
     // Update location to "Kho" and clear assignedTo
     const transferTime = new Date();
     const transferUserId = userId || device.createdBy || "Không xác định";
-    const transferUserName =
-      userName || device.createdByName || "Người dùng";
+    const transferUserName = userName || device.createdByName || "Người dùng";
 
     const warehouseData: DeviceFormData = {
       ...deviceData,
       location: "Kho",
-      assignedTo: undefined, 
+      assignedTo: undefined,
       transferredToWarehouseAt: transferTime.toISOString(),
       transferredToWarehouseBy: transferUserId,
       transferredToWarehouseByName: transferUserName,
@@ -262,7 +294,8 @@ export const moveDeviceFromDevicesToWarehouse = async (
     const newWarehouseId = await addDeviceToWarehouse(
       warehouseData,
       transferUserId,
-      transferUserName
+      transferUserName,
+      deviceId // Bỏ qua chính thiết bị đang chuyển để không báo trùng mã
     );
 
     // Delete from devices collection
@@ -271,12 +304,16 @@ export const moveDeviceFromDevicesToWarehouse = async (
     return newWarehouseId;
   } catch (error) {
     console.error("Error moving device from devices to warehouse: ", error);
-    throw new Error("Không thể chuyển thiết bị từ quản lý về kho. Vui lòng thử lại.");
+    throw new Error(
+      "Không thể chuyển thiết bị từ quản lý về kho. Vui lòng thử lại."
+    );
   }
 };
 
 // Search warehouse devices
-export const searchWarehouseDevices = async (searchTerm: string): Promise<Device[]> => {
+export const searchWarehouseDevices = async (
+  searchTerm: string
+): Promise<Device[]> => {
   try {
     const querySnapshot = await getDocs(collection(db, "warehouse"));
     const devices: Device[] = [];
@@ -315,4 +352,3 @@ export const searchWarehouseDevices = async (searchTerm: string): Promise<Device
     throw new Error("Không thể tìm kiếm thiết bị trong kho. Vui lòng thử lại.");
   }
 };
-
