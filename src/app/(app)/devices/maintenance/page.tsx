@@ -92,14 +92,27 @@ export default function MaintenancePage() {
     try {
       setLoading(true);
 
+      // Helper function để kiểm tra thiết bị có bị xóa không
+      const isDeviceDeleted = (device: Device) => {
+        return device?.isDeleted === true || (device?.deletedAt !== null && device?.deletedAt !== undefined);
+      };
+
       // 1. Lấy thiết bị đang sử dụng (collection "devices")
       const inUseDevices = await getDevices();
 
       // 2. Lấy thiết bị trong kho (collection "warehouse")
       const warehouseDevices = await getWarehouseDevices();
 
-      // 3. Gộp 2 nguồn và chỉ giữ thiết bị cần bảo trì / đã hỏng
-      const combinedDevices = [...inUseDevices, ...warehouseDevices];
+      // 3. Lọc thiết bị chưa bị xóa từ cả hai nguồn
+      const activeInUseDevices = (inUseDevices || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+      const activeWarehouseDevices = (warehouseDevices || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+
+      // 4. Gộp 2 nguồn và chỉ giữ thiết bị cần bảo trì / đã hỏng (chưa bị xóa)
+      const combinedDevices = [...activeInUseDevices, ...activeWarehouseDevices];
       const maintenanceDevices = combinedDevices.filter(
         (device) =>
           device.status === "maintenance" || device.status === "broken"
@@ -124,13 +137,26 @@ export default function MaintenancePage() {
     try {
       setLoading(true);
 
+      // Helper function để kiểm tra thiết bị có bị xóa không
+      const isDeviceDeleted = (device: Device) => {
+        return device?.isDeleted === true || (device?.deletedAt !== null && device?.deletedAt !== undefined);
+      };
+
       // Tìm kiếm trong danh sách thiết bị đang sử dụng
       const searchInUse = await searchDevices(searchTerm);
       // Tìm kiếm trong kho
       const searchWarehouse = await searchWarehouseDevices(searchTerm);
 
-      // Gộp kết quả, lọc trạng thái cần bảo trì / đã hỏng
-      const mergedResults = [...searchInUse, ...searchWarehouse];
+      // Lọc thiết bị chưa bị xóa
+      const activeSearchInUse = (searchInUse || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+      const activeSearchWarehouse = (searchWarehouse || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+
+      // Gộp kết quả, lọc trạng thái cần bảo trì / đã hỏng (chưa bị xóa)
+      const mergedResults = [...activeSearchInUse, ...activeSearchWarehouse];
       const filteredResults = mergedResults.filter(
         (device) =>
           device.status === "maintenance" || device.status === "broken"

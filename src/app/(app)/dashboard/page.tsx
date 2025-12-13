@@ -170,9 +170,29 @@ export default function Dashboard() {
         warehouseDevices = [];
       }
 
-      // Gộp cả hai nguồn để tính tổng
-      allDevices = [...inUseDevices, ...warehouseDevices];
-      console.log("📱 Tổng số thiết bị (đang dùng + kho):", allDevices.length);
+      // Helper function để kiểm tra thiết bị có bị xóa không
+      const isDeviceDeleted = (device: any) => {
+        return device?.isDeleted === true || (device?.deletedAt !== null && device?.deletedAt !== undefined);
+      };
+
+      // Lọc thiết bị chưa bị xóa từ cả hai nguồn
+      const activeInUseDevices = (inUseDevices || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+      const activeWarehouseDevices = (warehouseDevices || []).filter(
+        (device) => !isDeviceDeleted(device)
+      );
+
+      console.log("📊 Trước khi lọc:", {
+        inUseDevices: inUseDevices.length,
+        warehouseDevices: warehouseDevices.length,
+        activeInUseDevices: activeInUseDevices.length,
+        activeWarehouseDevices: activeWarehouseDevices.length
+      });
+
+      // Gộp cả hai nguồn để tính tổng (chỉ thiết bị chưa bị xóa)
+      allDevices = [...activeInUseDevices, ...activeWarehouseDevices];
+      console.log("📱 Tổng số thiết bị (đang dùng + kho, chưa xóa):", allDevices.length);
 
       try {
         allUsers = await getUsers();
@@ -182,16 +202,45 @@ export default function Dashboard() {
         allUsers = [];
       }
 
-      // Lọc thiết bị theo trạng thái từ tất cả thiết bị (bao gồm cả kho)
+      // Lọc thiết bị theo trạng thái từ tất cả thiết bị (chỉ thiết bị chưa bị xóa)
       activeDevices = (allDevices || []).filter(
         (device) => device?.status === "active"
       );
       console.log("✅ Thiết bị đang hoạt động:", activeDevices.length);
 
+      // Lọc thiết bị bảo trì - kiểm tra cả trường hợp status có thể là string hoặc không chính xác
       maintenanceDevices = (allDevices || []).filter(
-        (device) => device?.status === "maintenance"
+        (device) => {
+          const status = device?.status;
+          return status === "maintenance" || String(status)?.toLowerCase() === "maintenance";
+        }
       );
       console.log("🔧 Thiết bị cần bảo trì:", maintenanceDevices.length);
+      console.log("🔧 Chi tiết thiết bị bảo trì:", maintenanceDevices.map(d => ({ 
+        id: d.id, 
+        code: d.code, 
+        name: d.name, 
+        location: d.location, 
+        status: d.status,
+        isDeleted: d.isDeleted,
+        deletedAt: d.deletedAt
+      })));
+      
+      // Kiểm tra thiết bị bảo trì từ kho và phòng riêng biệt
+      const maintenanceInUse = activeInUseDevices.filter(d => {
+        const status = d?.status;
+        return status === "maintenance" || String(status)?.toLowerCase() === "maintenance";
+      });
+      const maintenanceInWarehouse = activeWarehouseDevices.filter(d => {
+        const status = d?.status;
+        return status === "maintenance" || String(status)?.toLowerCase() === "maintenance";
+      });
+      console.log("🔧 Thiết bị bảo trì trong phòng:", maintenanceInUse.length, maintenanceInUse.map(d => ({ code: d.code, name: d.name, status: d.status })));
+      console.log("🔧 Thiết bị bảo trì trong kho:", maintenanceInWarehouse.length, maintenanceInWarehouse.map(d => ({ code: d.code, name: d.name, status: d.status })));
+      
+      // Kiểm tra tất cả thiết bị có status để debug
+      const allStatuses = [...new Set(allDevices.map(d => d?.status).filter(Boolean))];
+      console.log("📋 Tất cả các status có trong hệ thống:", allStatuses);
 
       brokenDevices = (allDevices || []).filter(
         (device) => device?.status === "broken"
@@ -203,12 +252,28 @@ export default function Dashboard() {
       );
       console.log("📦 Thiết bị thanh lý:", retiredDevices.length);
 
-      // Thiết bị đang ở phòng ban = thiết bị đang sử dụng (không phải trong kho)
-      const devicesInDepartments = (inUseDevices || []).length;
+      // Kiểm tra tổng: active + maintenance + broken + retired = allDevices
+      const totalByStatus = activeDevices.length + maintenanceDevices.length + brokenDevices.length + retiredDevices.length;
+      console.log("🔍 Kiểm tra tổng:", {
+        active: activeDevices.length,
+        maintenance: maintenanceDevices.length,
+        broken: brokenDevices.length,
+        retired: retiredDevices.length,
+        totalByStatus: totalByStatus,
+        allDevices: allDevices.length,
+        match: totalByStatus === allDevices.length
+      });
+
+      // Thiết bị đang ở phòng ban = thiết bị đang sử dụng (không phải trong kho) và không đang bảo trì
+      const devicesInDepartments = activeInUseDevices.filter(
+        (device) => device?.status !== "maintenance"
+      ).length;
       console.log("🏢 Thiết bị đang ở phòng ban:", devicesInDepartments);
 
-      // Tổng thiết bị trong kho
-      const totalWarehouseDevices = (warehouseDevices || []).length;
+      // Tổng thiết bị trong kho (loại trừ thiết bị đang bảo trì và đã bị xóa)
+      const totalWarehouseDevices = activeWarehouseDevices.filter(
+        (device) => device?.status !== "maintenance"
+      ).length;
       console.log("📦 Tổng thiết bị trong kho:", totalWarehouseDevices);
 
       const today = new Date();
@@ -257,6 +322,7 @@ export default function Dashboard() {
           return false;
         }
       });
+      // allDevices đã được lọc loại trừ thiết bị đã xóa ở trên, nên newDevicesThisMonth cũng tự động loại trừ
 
       console.log("📊 Đã tải thống kê thiết bị:", {
         tong: allDevices.length,

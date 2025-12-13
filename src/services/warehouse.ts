@@ -112,7 +112,6 @@ export const getWarehouseDeviceById = async (
   }
 };
 
-// Update warehouse device
 export const updateWarehouseDevice = async (
   id: string,
   deviceData: Partial<DeviceFormData>,
@@ -120,7 +119,7 @@ export const updateWarehouseDevice = async (
   userName?: string
 ): Promise<void> => {
   try {
-    // Check if device code already exists (if code is being updated)
+  
     if (deviceData.code) {
       const codeExists = await isDeviceCodeExists(deviceData.code, id);
       if (codeExists) {
@@ -146,7 +145,6 @@ export const updateWarehouseDevice = async (
   }
 };
 
-// Delete warehouse device (soft delete - mark as deleted)
 export const deleteWarehouseDevice = async (
   id: string,
   userId?: string,
@@ -159,7 +157,7 @@ export const deleteWarehouseDevice = async (
       isDeleted: true,
       deletedAt: new Date(),
       deletedBy: userId || "Không xác định",
-      // Lưu tên người xóa nếu có, còn không để trống để UI có thể fallback sang deletedBy
+
       deletedByName: userName || "",
       deleteReason: deleteReason || "",
       updatedAt: new Date(),
@@ -170,7 +168,6 @@ export const deleteWarehouseDevice = async (
   }
 };
 
-// Hard delete warehouse device (permanently remove from database)
 export const hardDeleteWarehouseDevice = async (id: string): Promise<void> => {
   try {
     const deviceRef = doc(db, "warehouse", id);
@@ -210,13 +207,12 @@ export const moveDeviceFromWarehouseToDevices = async (
     } = warehouseDevice;
     const { addDevice } = await import("./devices");
 
-    // Update location - remove "Kho" and use department as location if available
+
     let newLocation = deviceData.location || "";
     if (newLocation.toLowerCase().includes("kho")) {
       newLocation = newLocation.replace(/kho/gi, "").trim();
     }
 
-    // If location is empty after removing "Kho", use department as location
     if (!newLocation && department) {
       newLocation = department;
     } else if (!newLocation && deviceData.department) {
@@ -231,7 +227,7 @@ export const moveDeviceFromWarehouseToDevices = async (
       department: department || deviceData.department || "",
     } as DeviceFormData;
 
-    // Xóa khỏi kho trước để không bị trùng mã khi thêm vào collection devices
+
     await hardDeleteWarehouseDevice(warehouseDeviceId);
 
     const newDeviceId = await addDevice(
@@ -249,14 +245,13 @@ export const moveDeviceFromWarehouseToDevices = async (
   }
 };
 
-// Move device from devices (in use) to warehouse (stock entry)
 export const moveDeviceFromDevicesToWarehouse = async (
   deviceId: string,
   userId?: string,
   userName?: string
 ): Promise<string> => {
   try {
-    // Get device from devices collection
+
     const { getDeviceById, deleteDevice } = await import("./devices");
     const device = await getDeviceById(deviceId);
 
@@ -264,7 +259,7 @@ export const moveDeviceFromDevicesToWarehouse = async (
       throw new Error("Không tìm thấy thiết bị trong quản lý thiết bị");
     }
 
-    // Prepare device data for warehouse
+
     const {
       id,
       createdAt,
@@ -276,7 +271,7 @@ export const moveDeviceFromDevicesToWarehouse = async (
       ...deviceData
     } = device;
 
-    // Update location to "Kho" and clear assignedTo
+
     const transferTime = new Date();
     const transferUserId = userId || device.createdBy || "Không xác định";
     const transferUserName = userName || device.createdByName || "Người dùng";
@@ -290,15 +285,13 @@ export const moveDeviceFromDevicesToWarehouse = async (
       transferredToWarehouseByName: transferUserName,
     } as DeviceFormData;
 
-    // Add to warehouse collection
     const newWarehouseId = await addDeviceToWarehouse(
       warehouseData,
       transferUserId,
       transferUserName,
-      deviceId // Bỏ qua chính thiết bị đang chuyển để không báo trùng mã
+      deviceId 
     );
 
-    // Delete from devices collection
     await deleteDevice(deviceId);
 
     return newWarehouseId;
@@ -310,7 +303,7 @@ export const moveDeviceFromDevicesToWarehouse = async (
   }
 };
 
-// Search warehouse devices
+
 export const searchWarehouseDevices = async (
   searchTerm: string
 ): Promise<Device[]> => {
