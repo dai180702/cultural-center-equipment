@@ -88,37 +88,60 @@ export default function BorrowReturnPage() {
     try {
       setLoading(true);
       const data = await getBorrowRecords();
-      // Convert Firestore timestamps to Date objects
-      const processedData = data.map((record) => ({
-        ...record,
-        borrowDate:
+      const now = new Date();
+      
+      // Convert Firestore timestamps to Date objects và kiểm tra quá hạn
+      const processedData = data.map((record) => {
+        const borrowDate =
           record.borrowDate instanceof Date
             ? record.borrowDate
             : (record.borrowDate as any)?.toDate?.() ||
-              new Date(record.borrowDate),
-        expectedReturnDate: record.expectedReturnDate
+              new Date(record.borrowDate);
+        const expectedReturnDate = record.expectedReturnDate
           ? record.expectedReturnDate instanceof Date
             ? record.expectedReturnDate
             : (record.expectedReturnDate as any)?.toDate?.() ||
               new Date(record.expectedReturnDate)
-          : undefined,
-        returnDate: record.returnDate
+          : undefined;
+        const returnDate = record.returnDate
           ? record.returnDate instanceof Date
             ? record.returnDate
             : (record.returnDate as any)?.toDate?.() ||
               new Date(record.returnDate)
-          : undefined,
-        createdAt:
+          : undefined;
+        const createdAt =
           record.createdAt instanceof Date
             ? record.createdAt
             : (record.createdAt as any)?.toDate?.() ||
-              new Date(record.createdAt),
-        updatedAt:
+              new Date(record.createdAt);
+        const updatedAt =
           record.updatedAt instanceof Date
             ? record.updatedAt
             : (record.updatedAt as any)?.toDate?.() ||
-              new Date(record.updatedAt),
-      }));
+              new Date(record.updatedAt);
+
+        // Kiểm tra quá hạn: thiết bị chưa trả (status = "borrowed") và đã quá ngày dự kiến trả
+        let finalStatus = record.status;
+        if (
+          record.status === "borrowed" &&
+          !returnDate &&
+          expectedReturnDate &&
+          new Date(expectedReturnDate) < now
+        ) {
+          finalStatus = "overdue";
+        }
+
+        return {
+          ...record,
+          borrowDate,
+          expectedReturnDate,
+          returnDate,
+          createdAt,
+          updatedAt,
+          status: finalStatus as "borrowed" | "returned" | "overdue",
+        };
+      });
+      
       setAllRecords(processedData);
       setRecords(processedData);
     } catch (err) {
@@ -150,27 +173,27 @@ export default function BorrowReturnPage() {
 
   const applyFilters = () => {
     let filteredRecords = allRecords;
+    const now = new Date();
+
+    // Kiểm tra lại quá hạn để đảm bảo tính chính xác (cập nhật real-time)
+    filteredRecords = filteredRecords.map((record) => {
+      // Nếu thiết bị đang mượn, chưa trả, và đã quá ngày dự kiến trả -> đánh dấu quá hạn
+      if (
+        record.status === "borrowed" &&
+        !record.returnDate &&
+        record.expectedReturnDate &&
+        new Date(record.expectedReturnDate) < now
+      ) {
+        return { ...record, status: "overdue" as const };
+      }
+      return record;
+    });
 
     // Filter by status
     if (statusFilter !== "all") {
       filteredRecords = filteredRecords.filter(
         (record) => record.status === statusFilter
       );
-    }
-
-    // Check for overdue records
-    if (statusFilter === "all" || statusFilter === "borrowed") {
-      const now = new Date();
-      filteredRecords = filteredRecords.map((record) => {
-        if (
-          record.status === "borrowed" &&
-          record.expectedReturnDate &&
-          new Date(record.expectedReturnDate) < now
-        ) {
-          return { ...record, status: "overdue" as const };
-        }
-        return record;
-      });
     }
 
     setRecords(filteredRecords);
@@ -388,7 +411,17 @@ export default function BorrowReturnPage() {
                       fontWeight="bold"
                       color="warning.main"
                     >
-                      {allRecords.filter((r) => r.status === "borrowed").length}
+                      {
+                        allRecords.filter(
+                          (r) =>
+                            r.status === "borrowed" &&
+                            !(
+                              !r.returnDate &&
+                              r.expectedReturnDate &&
+                              new Date(r.expectedReturnDate) < new Date()
+                            )
+                        ).length
+                      }
                     </Typography>
                   </Box>
                   <ScheduleIcon
@@ -452,11 +485,19 @@ export default function BorrowReturnPage() {
                     >
                       {
                         allRecords.filter(
-                          (r) =>
-                            r.status === "overdue" ||
-                            (r.status === "borrowed" &&
+                          (r) => {
+                            // Kiểm tra status đã được cập nhật hoặc kiểm tra real-time
+                            if (r.status === "overdue") return true;
+                            if (
+                              r.status === "borrowed" &&
+                              !r.returnDate &&
                               r.expectedReturnDate &&
-                              new Date(r.expectedReturnDate) < new Date())
+                              new Date(r.expectedReturnDate) < new Date()
+                            ) {
+                              return true;
+                            }
+                            return false;
+                          }
                         ).length
                       }
                     </Typography>
