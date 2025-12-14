@@ -365,9 +365,7 @@ export default function EditUserPage() {
     const newErrors: Record<string, string> = {};
 
     if (step === 0 || step === -1) {
-      if (!formData.employeeId.trim()) {
-        newErrors.employeeId = "Mã nhân viên là bắt buộc";
-      }
+      // Không cần validate employeeId vì không cho phép thay đổi
       if (!formData.fullName.trim()) {
         newErrors.fullName = "Họ tên là bắt buộc";
       }
@@ -424,8 +422,11 @@ export default function EditUserPage() {
         (skill) => skill.trim() !== ""
       );
 
+      // Loại bỏ employeeId vì không được phép thay đổi
+      const { employeeId, ...formDataWithoutEmployeeId } = formData;
+
       const userData = {
-        ...formData,
+        ...formDataWithoutEmployeeId,
         skills: cleanSkills,
         // Thêm avatar URL
         avatar: avatarUrl || undefined,
@@ -484,7 +485,7 @@ export default function EditUserPage() {
 
   // Xử lý hủy
   const handleCancel = () => {
-    router.push(`/users/${userId}`);
+    router.push("/users");
   };
 
   if (initialLoading) {
@@ -696,7 +697,7 @@ export default function EditUserPage() {
               <Button
                 variant="outlined"
                 startIcon={<ArrowBackIcon />}
-                onClick={() => router.push(`/users/${userId}`)}
+                onClick={() => router.push("/users")}
               >
                 Quay lại
               </Button>
@@ -802,12 +803,17 @@ export default function EditUserPage() {
                       fullWidth
                       label="Mã nhân viên *"
                       value={formData.employeeId}
-                      onChange={(e) =>
-                        handleInputChange("employeeId", e.target.value)
-                      }
+                      InputProps={{
+                        readOnly: true,
+                      }}
                       error={!!errors.employeeId}
-                      helperText={errors.employeeId}
+                      helperText={errors.employeeId || "Mã nhân viên không thể thay đổi"}
                       placeholder="VD: NV001"
+                      sx={{
+                        "& .MuiInputBase-root": {
+                          backgroundColor: "rgba(0, 0, 0, 0.04)",
+                        },
+                      }}
                     />
                   </MuiBox>
                   <MuiBox>
